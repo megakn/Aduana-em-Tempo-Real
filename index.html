@@ -46,7 +46,7 @@ body.light .progressTrack{background:#e2edf5;border-color:#bfd4e1}
 <div class="card" style="margin-top:12px"><div class="head"><h2>Configuração</h2></div><div class="body"><div class="cfg"><label>Tempo esperado da Aduana (min)</label><input id="sla" type="number" min="1" value="15" onchange="saveCfg();render()"></div><div class="tiny" style="margin-top:7px">O limite fica configurável porque o tempo de auditoria da colagem pode ter regra diferente do cronômetro operacional do Layout.</div><div class="actions"><button class="ghost" onclick="syncSupabase()">Atualizar Layout/Backlog</button><button class="primary" onclick="openReport()">Relatório do dia</button><button class="ghost" onclick="exportExcel()">Exportar Excel</button><button class="danger" onclick="resetAll()">Iniciar novo dia</button></div><div class="statusline" id="syncStatus">Tentaremos cruzar Rua/Vaga e Backlog usando as tabelas operacionais existentes.</div></div></div>
 </section>
 <section>
-<div class="card"><div class="head"><h2>Visão operacional</h2><div style="display:flex;gap:8px;align-items:center"><span class="tiny" id="summary"></span><button type="button" id="filterBtn" class="filterBtn" onclick="toggleFilters()">⚙ Filtros</button></div></div><div class="filters recolhido" id="filterPanel"><input id="search" placeholder="Buscar rota, Aduana, transportadora, rua..." oninput="renderTable()"><select id="cycleFilter" onchange="renderTable()"><option value="">Todos os ciclos</option></select><select id="carrierFilter" onchange="renderTable()"><option value="">Todas as transportadoras</option></select><select id="vehicleFilter" onchange="renderTable()"><option value="">VUC + GM</option><option value="VUC">VUC</option><option value="GM">GM</option></select><select id="statusFilter" onchange="renderTable()"><option value="">Todos os status</option><option value="DIVERGÊNCIA">Com divergência</option><option value="CORRETA">Corretas</option><option value="AGUARDANDO">Aguardando Aduana</option><option value="AMAIS">A Mais</option><option value="FALTANTE">Faltante</option><option value="AVARIA">Avariadas</option></select><label class="tiny"><input type="checkbox" id="onlyBacklog" onchange="renderTable()"> Só com Backlog</label><button type="button" class="ghost" onclick="limparFiltros()">Limpar filtros</button></div><div class="tablewrap"><table><thead><tr><th>Status</th><th>Rota</th><th>Aduana</th><th>Transportadora</th><th>Rua</th><th>Vaga</th><th>Tempo</th><th>Corretas</th><th>A mais</th><th>Faltantes</th><th>Avariadas</th><th>Diverg.</th><th>Backlog</th><th>Horário</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
+<div class="card"><div class="head"><h2>Visão operacional</h2><div style="display:flex;gap:8px;align-items:center"><span class="tiny" id="summary"></span><button type="button" id="filterBtn" class="filterBtn" onclick="toggleFilters()">⚙ Filtros</button></div></div><div class="filters recolhido" id="filterPanel"><input id="search" placeholder="Buscar rota, Aduana, transportadora, rua..." oninput="renderTable()"><select id="cycleFilter" onchange="renderTable()"><option value="">Todos os ciclos</option></select><select id="carrierFilter" onchange="renderTable()"><option value="">Todas as transportadoras</option></select><select id="streetFilter" onchange="renderTable()"><option value="">Todas as ruas</option></select><select id="vehicleFilter" onchange="renderTable()"><option value="">VUC + GM</option><option value="VUC">VUC</option><option value="GM">GM</option></select><select id="statusFilter" onchange="renderTable()"><option value="">Todos os status</option><option value="DIVERGÊNCIA">Com divergência</option><option value="CORRETA">Corretas</option><option value="AGUARDANDO">Aguardando Aduana</option><option value="AMAIS">A Mais</option><option value="FALTANTE">Faltante</option><option value="AVARIA">Avariadas</option></select><label class="tiny"><input type="checkbox" id="onlyBacklog" onchange="renderTable()"> Só com Backlog</label><button type="button" class="ghost" onclick="limparFiltros()">Limpar filtros</button></div><div class="tablewrap"><table><thead><tr><th>Status</th><th>Rota</th><th>Aduana</th><th>Transportadora</th><th>Rua</th><th>Vaga</th><th>Tempo</th><th>Corretas</th><th>A mais</th><th>Faltantes</th><th>Avariadas</th><th>Diverg.</th><th>Backlog</th><th>Horário</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
 <div class="sectiontitle">🚨 Prioridade de atuação · Divergência + Backlog</div><div class="alertbox" id="alerts"></div>
 </section></div></div><div class="modal" id="reportModal" onclick="if(event.target===this)closeReport()"><div class="report"><div class="reportTop"><div><small style="color:var(--cyan);font-weight:900">RELATÓRIO OPERACIONAL</small><h2>Dashboard diário de Aduana</h2><div class="tiny" id="reportDate"></div></div><div class="actions"><button class="primary" onclick="exportExcel()">Exportar Excel</button><button class="ghost" onclick="closeReport()">Fechar</button></div></div><div class="reportBody"><div class="reportGrid" id="reportKpis"></div><div class="reportCols"><div class="miniPanel"><b>Resultado das Aduanas</b><div id="statusBars"></div></div><div class="miniPanel"><b>Aduanas por transportadora</b><div id="carrierBars"></div></div></div><div class="miniPanel" style="margin-top:12px"><b>Principais ocorrências do dia</b><div id="reportIssues" style="margin-top:10px"></div></div></div></div></div>
 <script>
@@ -66,12 +66,129 @@ function saveCfg(){localStorage.setItem(K.cfg,JSON.stringify({sla:+document.getE
 try{const c=JSON.parse(localStorage.getItem(K.cfg)||'{}');if(c.sla)document.getElementById('sla').value=c.sla}catch(e){}
 function getField(obj, candidates){const entries=Object.entries(obj||{});for(const c of candidates){const cc=norm(c);const hit=entries.find(([k])=>norm(k)===cc||norm(k).includes(cc));if(hit&&String(hit[1]??'').trim())return hit[1]}return''}
 function detectRouteFromRow(row){for(const v of Object.values(row||{})){const m=String(v??'').match(routeRx);if(m)return m[0].toUpperCase()}return''}
-function detectCarrier(row){return getField(row,['transportadora','mlp','carrier','parceiro','empresa','transportation company'])}
-function detectStreet(row){return getField(row,['rua','street','localização','localizacao'])}
+function detectCarrier(row){return getField(row,['transportadora','mlp ajust.','mlp ajust','mlp','carrier','parceiro','empresa','transportation company'])}
+
+// MAPA FIXO DO LAYOUT OPERACIONAL — informado pela operação.
+// A rua é definida pela TRANSPORTADORA da rota, e não pelo código C19/C5/C3.
+const CARRIER_LAYOUT = [
+  {keys:['DECARGO','DE CARGO','DC'], name:'DECARGO', rua:'RUA 1'},
+  {keys:['ON TIME SERVICOS','ON TIME SERVIÇOS','ON TIME','ONTIME','OT'], name:'ON TIME', rua:'RUA 1'},
+  {keys:['ECO EXPRESS','ECO','EC'], name:'ECO EXPRESS', rua:'RUA 1'},
+  {keys:['COOPMETRO','COOP METRO','CM'], name:'COOPMETRO', rua:'RUA 1'},
+  {keys:['ALC TRANSPORTES','A L C TRANSPORTES','ALC','AL'], name:'ALC TRANSPORTES', rua:'RUA 1'},
+  {keys:['PARCEIRO SPOT SOLUCOES','PARCEIRO SPOT SOLUÇÕES','PARCEIRO','PC'], name:'PARCEIRO', rua:'RUA 2'},
+  {keys:['M.J. SIMOES','M.J SIMOES','MJ SIMOES','M J SIMOES','M I J TRANSPORTES','MIJ TRANSPORTES','MJ TRANSPORTES','MS'], name:'M.J. SIMÕES', rua:'RUA 2'},
+  {keys:['DELUNA','DE LUNA','DL'], name:'DELUNA', rua:'RUA 2'},
+  {keys:['KANGU LOGISTICS','KANGU LOGISTICA','KANGU LOGÍSTICA','KANGU','KG'], name:'KANGU LOGISTICS', rua:'RUA 3'},
+  {keys:['HAWK TRANSPORTES','HAWK TRANSPORTE','HAWK','HW'], name:'HAWK TRANSPORTES', rua:'RUA 3'},
+  {keys:['MELI EXTRA','ENVIOS EXTRA','ENVÍOS EXTRA','ME EXTRA','MELI','ME'], name:'MELI EXTRA', rua:'RUA 3'},
+  {keys:['VUC'], name:'VUC', rua:'RUA 4 / RUA 5'},
+  {keys:['PRALOG','PRA LOG','PL'], name:'PRALOG', rua:''}
+];
+function carrierClean(v){
+  return norm(v)
+    .replace(/Ã[•“Õ]/g,'O')
+    .replace(/Ã‡/g,'C')
+    .replace(/[.\-_/]+/g,' ')
+    .replace(/[^A-Z0-9 ]+/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function carrierRule(v){
+  const n=carrierClean(v); if(!n)return null;
+  // Regras fortes para grafias muito diferentes/arquivos com codificação quebrada.
+  if((n.includes('M J')||n.includes('MJ')||n.includes('M I J')||n.includes('MIJ')) && (n.includes('SIM')||n.includes('TRANSPORT'))) return CARRIER_LAYOUT.find(r=>r.name==='M.J. SIMÕES');
+  if(n.includes('PARCEIRO')) return CARRIER_LAYOUT.find(r=>r.name==='PARCEIRO');
+  if(n.includes('ON TIME')||n==='ONTIME') return CARRIER_LAYOUT.find(r=>r.name==='ON TIME');
+  if(n.includes('HAWK')) return CARRIER_LAYOUT.find(r=>r.name==='HAWK TRANSPORTES');
+  if(n.includes('KANGU')) return CARRIER_LAYOUT.find(r=>r.name==='KANGU LOGISTICS');
+  if(n.includes('MELI')||n.includes('ENVIOS EXTRA')) return CARRIER_LAYOUT.find(r=>r.name==='MELI EXTRA');
+  if(n.includes('ECO EXPRESS')) return CARRIER_LAYOUT.find(r=>r.name==='ECO EXPRESS');
+  if(n.includes('DELUNA')||n.includes('DE LUNA')) return CARRIER_LAYOUT.find(r=>r.name==='DELUNA');
+  if(n.includes('COOPMETRO')||n.includes('COOP METRO')) return CARRIER_LAYOUT.find(r=>r.name==='COOPMETRO');
+  if(n.includes('DECARGO')||n.includes('DE CARGO')) return CARRIER_LAYOUT.find(r=>r.name==='DECARGO');
+  if(n.includes('ALC')) return CARRIER_LAYOUT.find(r=>r.name==='ALC TRANSPORTES');
+  if(n.includes('PRALOG')||n.includes('PRA LOG')) return CARRIER_LAYOUT.find(r=>r.name==='PRALOG');
+  if(n==='VUC'||n.includes(' VUC')) return CARRIER_LAYOUT.find(r=>r.name==='VUC');
+  return CARRIER_LAYOUT.find(r=>r.keys.some(k=>{const kk=carrierClean(k);return n===kk||n.includes(kk)||kk.includes(n)}))||null;
+}
+function carrierCanonical(v){const r=carrierRule(v);return r?r.name:String(v||'').trim()}
+function ruaByCarrier(v){const r=carrierRule(v);return r?r.rua:''}
+function detectVehicle(row){return getField(row,['tipo de veículo','tipo de veiculo','modal','vehicle','veículo','veiculo'])}
+function detectStreet(row){return ''} // rua vem do mapa da transportadora
 function detectCycle(row,rota=''){const direct=getField(row,['ciclo','cycle','onda','wave']);const raw=norm(direct||rota);const m=raw.match(/(?:^|[_\s-])(AM1|AM2|AM3|PM1|PM2|PM3|SD|CHP)(?:$|[_\s-])/);return m?m[1]:(direct?norm(direct):'')}
 function setImportProgress(pct,msg,done=false){const box=document.getElementById('importProgress'),bar=document.getElementById('progressBar'),txt=document.getElementById('progressText'),pc=document.getElementById('progressPct');if(!box)return;box.classList.add('show');box.classList.toggle('progressDone',done);const p=Math.max(0,Math.min(100,Math.round(pct)));bar.style.width=p+'%';pc.textContent=p+'%';txt.textContent=msg||'Processando...'}
 function hideImportProgress(){const box=document.getElementById('importProgress');if(box)box.classList.remove('show','progressDone')}
-async function readWorkbook(file){const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});let found=0;for(const sh of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[sh],{defval:''});for(const row of rows){const rota=detectRouteFromRow(row);if(!rota)continue;const key=routeKey(rota);planning[key]={...(planning[key]||{}),rota,transportadora:detectCarrier(row)||planning[key]?.transportadora||'',rua:detectStreet(row)||planning[key]?.rua||'',ciclo:detectCycle(row,rota)||planning[key]?.ciclo||'',fonte:file.name,aba:sh};found++}}return found}
+
+const plannedCarrier={};
+function reconcilePlanning(){
+  for(const [k,p] of Object.entries(planning)){
+    const pid=routeKey(p.plannedId||'');
+    const rawCarrier=p.transportadora||(pid&&plannedCarrier[pid])||'';
+    const canon=carrierCanonical(rawCarrier);
+    if(canon)p.transportadora=canon;
+    const rua=ruaByCarrier(rawCarrier||canon);
+    if(rua)p.rua=rua;
+    else if(rawCarrier && /PRALOG|\bPL\b/i.test(norm(rawCarrier))) p.rua='';
+  }
+}
+function cellNorm(v){return norm(v).replace(/\s+/g,' ').trim()}
+async function readWorkbook(file){
+  const buf=await file.arrayBuffer();
+  const wb=XLSX.read(buf,{type:'array'});
+  let found=0;
+  for(const sh of wb.SheetNames){
+    const matrix=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:'',raw:false});
+    if(!matrix.length)continue;
+
+    // 1) OTIMIZADO: liga PM1_282 -> A1_PM1.
+    let hi=matrix.findIndex(r=>r.some(v=>cellNorm(v)==='ID PLANEJADO') && r.some(v=>cellNorm(v)==='ID OTIMIZADO'));
+    if(hi>=0){
+      const hdr=matrix[hi].map(cellNorm), ip=hdr.indexOf('ID PLANEJADO'), io=hdr.indexOf('ID OTIMIZADO'), idet=hdr.indexOf('DETALHE DO ROTEIRO'), ivei=hdr.findIndex(x=>x==='TIPO DE VEICULO');
+      for(let ri=hi+1;ri<matrix.length;ri++){
+        const r=matrix[ri], planned=String(r[ip]||'').trim(), rota=String(r[io]||'').trim().toUpperCase();
+        if(!rota||!routeRx.test(rota))continue;
+        const key=routeKey(rota), prev=planning[key]||{};
+        planning[key]={...prev,rota,plannedId:planned||prev.plannedId||'',detalheRoteiro:idet>=0?String(r[idet]||'').trim():prev.detalheRoteiro||'',veiculo:ivei>=0?String(r[ivei]||'').trim():prev.veiculo||'',ciclo:detectCycle({},rota)||prev.ciclo||'',fonte:file.name,aba:sh};
+        found++;
+      }
+    }
+
+    // 2) BASE: também liga RTG_ROUTE_NAME -> Otimizado.
+    hi=matrix.findIndex(r=>r.some(v=>cellNorm(v)==='OTIMIZADO') && r.some(v=>cellNorm(v)==='RTG_ROUTE_NAME'));
+    if(hi>=0){
+      const hdr=matrix[hi].map(cellNorm), io=hdr.indexOf('OTIMIZADO'), ip=hdr.indexOf('RTG_ROUTE_NAME');
+      for(let ri=hi+1;ri<matrix.length;ri++){
+        const r=matrix[ri], rota=String(r[io]||'').trim().toUpperCase(), planned=String(r[ip]||'').trim();
+        if(!rota||!routeRx.test(rota))continue;
+        const key=routeKey(rota), prev=planning[key]||{};
+        planning[key]={...prev,rota,plannedId:prev.plannedId||planned,ciclo:detectCycle({},rota)||prev.ciclo||'',fonte:file.name,aba:sh};
+      }
+    }
+
+    // 3) PLANEJAMENTO: cabeçalho real pode estar na 2ª linha. Pega MLP + ROTA planejada.
+    hi=matrix.findIndex(r=>{
+      const h=r.map(cellNorm); return h.includes('MLP') && h.includes('ROTA');
+    });
+    if(hi>=0){
+      const hdr=matrix[hi].map(cellNorm), imlp=hdr.indexOf('MLP'), irota=hdr.indexOf('ROTA'), igaiola=hdr.indexOf('GAIOLA');
+      for(let ri=hi+1;ri<matrix.length;ri++){
+        const r=matrix[ri], pid=String(r[irota]||'').trim(), carrier=String(r[imlp]||'').trim(), gaiola=igaiola>=0?String(r[igaiola]||'').trim().toUpperCase():'';
+        if(pid&&carrier) plannedCarrier[routeKey(pid)]=carrier;
+        // REGRA PRINCIPAL: o Planejamento já informa diretamente GAIOLA -> TRANSPORTADORA.
+        // Ex.: PM1_197 | A4_PM1 | MELI EXTRA => A4_PM1 = MELI EXTRA = RUA 3.
+        if(gaiola && routeRx.test(gaiola) && carrier){
+          const key=routeKey(gaiola), prev=planning[key]||{};
+          const canon=carrierCanonical(carrier), rua=ruaByCarrier(carrier);
+          planning[key]={...prev,rota:gaiola,plannedId:pid||prev.plannedId||'',transportadora:canon||carrier,rua:rua||prev.rua||'',ciclo:detectCycle({},gaiola)||prev.ciclo||'',fonte:file.name,aba:sh};
+          found++;
+        } else if(pid&&carrier){ found++; }
+      }
+    }
+  }
+  reconcilePlanning();
+  return found;
+}
 document.getElementById('planFiles').addEventListener('change',async e=>{
  const files=[...e.target.files]; if(!files.length)return;
  let total=0; document.getElementById('planStatus').textContent='Lendo arquivos...';
@@ -85,15 +202,26 @@ document.getElementById('planFiles').addEventListener('change',async e=>{
    setImportProgress(((i+1)/files.length)*80,`Arquivo ${i+1}/${files.length} processado`);
    await new Promise(r=>setTimeout(r,30));
  }
- setImportProgress(86,'Consolidando rotas e removendo repetições...');
- save(); render();
- setImportProgress(92,'Cruzando Base / Planification / Planejamento...');
- await new Promise(r=>setTimeout(r,50));
- setImportProgress(96,'Atualizando Layout e Backlog...');
- try{await syncSupabase()}catch(e){}
- document.getElementById('planStatus').textContent=`Importação concluída: ${Object.keys(planning).length} rotas únicas reconhecidas (${total} ocorrências lidas).`;
- setImportProgress(100,`Concluído · ${Object.keys(planning).length} rotas reconhecidas`,true);
- setTimeout(()=>hideImportProgress(),3500);
+ setImportProgress(86,'Consolidando rotas e transportadoras...');
+ await new Promise(r=>setTimeout(r,20));
+ try{
+   reconcilePlanning();
+   setImportProgress(91,'Salvando rotas reconhecidas...');
+   save();
+   await new Promise(r=>setTimeout(r,20));
+   setImportProgress(96,'Montando a visão operacional...');
+   render();
+   const qtd=Object.keys(planning).length;
+   const comRua=Object.values(planning).filter(x=>String(x.rua||'').trim()).length;
+   document.getElementById('planStatus').textContent=`Importação concluída: ${qtd} rotas reconhecidas · ${comRua} com rua identificada.`;
+   setImportProgress(100,`Concluído · ${qtd} rotas reconhecidas`,true);
+   setTimeout(()=>{ try{syncSupabase()}catch(e){} },100);
+   setTimeout(()=>hideImportProgress(),3500);
+ }catch(err){
+   console.error('Erro ao finalizar importação',err);
+   document.getElementById('planStatus').textContent='Erro ao finalizar a importação: '+(err?.message||err);
+   setImportProgress(100,'Erro ao finalizar importação',true);
+ }
 });
 function parseAduana(text){const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);const out=[];let i=0;while(i<lines.length){const rm=lines[i].match(routeRx);if(!rm){i++;continue}const rota=rm[0].toUpperCase();let end=Math.min(lines.length,i+24);for(let j=i+1;j<Math.min(lines.length,i+24);j++){if(lines[j].match(routeRx)){end=j;break}}const block=lines.slice(i,end);const id=(block.find(x=>/^#\d+/.test(x))||'').match(/#\d+/)?.[0]||'';const timeLine=block.find(x=>/\b\d+\s*min\.?$/i.test(x))||'';const tempo=+(timeLine.match(/\d+/)?.[0]||0);const unit1=block.find(x=>/corretas?.*a mais/i.test(x))||'';const unit2=block.find(x=>/faltantes?.*avariadas?/i.test(x))||'';const corretas=+(unit1.match(/(\d+)\s*corretas?/i)?.[1]||0);const amais=+(unit1.match(/(\d+)\s*a mais/i)?.[1]||0);const falt=+(unit2.match(/(\d+)\s*faltantes?/i)?.[1]||0);const avar=+(unit2.match(/(\d+)\s*avariadas?/i)?.[1]||0);const hora=block.find(x=>/\b\d{1,2}:\d{2}\s*\|/.test(x))||'';const estado=block.find(x=>/conclu|andamento|pendente|aguard/i.test(x))||'';const carrierLine=block.find(x=>/\s\|\s/.test(x)&&!/^\d{1,2}:\d{2}/.test(x))||'';const [transportadora='',placa='']=carrierLine.split('|').map(x=>x.trim());const idIndex=block.findIndex(x=>/^#\d+/.test(x));const motorista=idIndex>=0?block[idIndex+1]||'':'';let rep='';const carrIdx=block.indexOf(carrierLine);if(carrIdx>=0)rep=block[carrIdx+1]||'';out.push({rota,id:id||`${rota}-${hora}`,motorista,transportadora,placa,rep,hora,tempo,corretas,amais,faltantes:falt,avariadas:avar,estado,updatedAt:new Date().toISOString()});i=end}return out}
 function processPaste(){const txt=document.getElementById('paste').value;if(!txt.trim()){alert('Cole primeiro os dados copiados do site da Aduana.');return}const rows=parseAduana(txt);let novos=0,atualizados=0;const seen=new Set();for(const r of rows){const stable=(r.id||routeKey(r.rota)).toUpperCase();if(seen.has(stable))continue;seen.add(stable);let existingKey=Object.keys(adu).find(k=>((adu[k]?.id||'').toUpperCase()===((r.id||'').toUpperCase())&&r.id)||(!r.id&&routeKey(adu[k]?.rota)===routeKey(r.rota)));if(existingKey){adu[existingKey]={...adu[existingKey],...r};atualizados++;}else{adu[stable]={...r};novos++;}}// remove duplicatas antigas pelo mesmo ID
@@ -125,14 +253,14 @@ function ensureOperationalDay(){
 }
 function opFor(rota){const k=routeKey(rota);return ops.find(o=>routeKey(o.rota||o.nRota||o.n_rota)===k)}
 function blFor(rota){const k=routeKey(rota);return backlog.filter(b=>routeKey(b.rota||b.nRota||b.n_rota)===k)}
-function merged(){const map=new Map();for(const p of Object.values(planning)){map.set(routeKey(p.rota),{rota:p.rota,plan:p})}for(const a of Object.values(adu)){const k=routeKey(a.rota);map.set(k,{...(map.get(k)||{rota:a.rota}),adu:a})}return [...map.values()].map(x=>{const a=x.adu,p=x.plan||{},o=opFor(x.rota),bl=blFor(x.rota);const div=a?(a.amais+a.faltantes+a.avariadas):0;const estado=norm(a?.estado||'');const aguardando=!!a&&(/AGUARD|PENDENTE|FILA|ESPERA/.test(estado));let status=aguardando?'AGUARDANDO':a?(div>0?'DIVERGÊNCIA':'CORRETA'):'PLANEJADA';const mk=routeKey(x.rota),man=manual[mk]||{};return{...x,status,div,backlog:bl.length,ciclo:p.ciclo||detectCycle({},x.rota),transportadora:a?.transportadora||o?.transportadora||p.transportadora||'',rua:man.rua||o?.rua||p.rua||'',vaga:man.vaga||o?.vaga||'',tempo:a?.tempo||0,late:a&&!aguardando&&a.tempo>(+document.getElementById('sla').value||15)}})}
+function merged(){const map=new Map();for(const p of Object.values(planning)){map.set(routeKey(p.rota),{rota:p.rota,plan:p})}for(const a of Object.values(adu)){const k=routeKey(a.rota);map.set(k,{...(map.get(k)||{rota:a.rota}),adu:a})}return [...map.values()].map(x=>{const a=x.adu,p=x.plan||{},o=opFor(x.rota),bl=blFor(x.rota);const div=a?(a.amais+a.faltantes+a.avariadas):0;const estado=norm(a?.estado||'');const aguardando=!!a&&(/AGUARD|PENDENTE|FILA|ESPERA/.test(estado));let status=aguardando?'AGUARDANDO':a?(div>0?'DIVERGÊNCIA':'CORRETA'):'PLANEJADA';const mk=routeKey(x.rota),man=manual[mk]||{};return{...x,status,div,backlog:bl.length,ciclo:p.ciclo||detectCycle({},x.rota),transportadora:carrierCanonical(a?.transportadora||o?.transportadora||p.transportadora||''),rua:man.rua||ruaByCarrier(a?.transportadora||o?.transportadora||p.transportadora||'')||o?.rua||p.rua||'',vaga:man.vaga||o?.vaga||'',tempo:a?.tempo||0,late:a&&!aguardando&&a.tempo>(+document.getElementById('sla').value||15)}})}
 async function syncSupabase(){if(!db){document.getElementById('syncStatus').textContent='Supabase indisponível neste navegador.';return}document.getElementById('syncStatus').textContent='Atualizando Layout e Backlog...';try{const [or,br]=await Promise.all([db.from('operacoes_vagas').select('*').eq('data_operacao',todayISO()).neq('status','FINALIZADA'),db.from('backlog_pacotes').select('*').eq('data_operacao',todayISO())]);if(!or.error)ops=or.data||[];if(!br.error)backlog=br.data||[];document.getElementById('syncStatus').textContent=`Layout: ${ops.length} operações ativas · Backlog: ${backlog.length} pacotes do dia.`;render()}catch(e){document.getElementById('syncStatus').textContent='Não foi possível consultar Layout/Backlog agora. O painel continua funcionando com os dados locais.'}}
-function updateFilterOptions(rows){const cf=document.getElementById('cycleFilter'),tf=document.getElementById('carrierFilter');if(!cf||!tf)return;const cv=cf.value,tv=tf.value;const cycles=[...new Set(rows.map(x=>x.ciclo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));const carriers=[...new Set(rows.map(x=>x.transportadora).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));cf.innerHTML='<option value="">Todos os ciclos</option>'+cycles.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');tf.innerHTML='<option value="">Todas as transportadoras</option>'+carriers.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if(cycles.includes(cv))cf.value=cv;if(carriers.includes(tv))tf.value=tv}
+function updateFilterOptions(rows){const cf=document.getElementById('cycleFilter'),tf=document.getElementById('carrierFilter'),rf=document.getElementById('streetFilter');if(!cf||!tf||!rf)return;const cv=cf.value,tv=tf.value,rv=rf.value;const cycles=[...new Set(rows.map(x=>x.ciclo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));const carriers=[...new Set(rows.map(x=>carrierCanonical(x.transportadora)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));const streets=[...new Set(rows.map(x=>x.rua).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));cf.innerHTML='<option value="">Todos os ciclos</option>'+cycles.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');tf.innerHTML='<option value="">Todas as transportadoras</option>'+carriers.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');rf.innerHTML='<option value="">Todas as ruas</option>'+streets.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if(cycles.includes(cv))cf.value=cv;if(carriers.includes(tv))tf.value=tv;if(streets.includes(rv))rf.value=rv}
 function render(){const de=document.getElementById('opDate');if(de)de.textContent='Data · '+new Date(todayISO()+'T12:00:00').toLocaleDateString('pt-BR');const m=merged(), a=Object.values(adu), div=a.filter(x=>x.amais+x.faltantes+x.avariadas>0), sla=+document.getElementById('sla').value||15;updateFilterOptions(m);const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.length-div.length,'green'],['Com divergência',div.length,'red'],['Aguardando',m.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['A mais',a.reduce((s,x)=>s+x.amais,0),'yellow'],['Pacotes faltantes',a.reduce((s,x)=>s+x.faltantes,0),'red'],['Avariadas',a.reduce((s,x)=>s+x.avariadas,0),'red'],['Com Backlog',m.filter(x=>x.div>0&&x.backlog>0).length,'red']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');document.getElementById('planCount').textContent=`${Object.keys(planning).length} rotas`;document.getElementById('aduCount').textContent=`${a.length} registros`;document.getElementById('summary').textContent=`${m.length} rotas na visão consolidada`;const last=localStorage.getItem(K.last);document.getElementById('lastUpdate').textContent=last?'Última atualização '+new Date(last).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Aguardando atualização';renderTable();renderAlerts()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function toggleFilters(){const p=document.getElementById('filterPanel'),b=document.getElementById('filterBtn');if(!p)return;const abre=p.classList.contains('recolhido');p.classList.toggle('recolhido');if(b){b.classList.toggle('ativo',abre);b.innerHTML=abre?'✕ Fechar filtros':'⚙ Filtros'}}
-function limparFiltros(){const s=document.getElementById('search'),cy=document.getElementById('cycleFilter'),ca=document.getElementById('carrierFilter'),ve=document.getElementById('vehicleFilter'),st=document.getElementById('statusFilter'),bl=document.getElementById('onlyBacklog');if(s)s.value='';if(cy)cy.value='';if(ca)ca.value='';if(ve)ve.value='';if(st)st.value='';if(bl)bl.checked=false;renderTable()}
-function renderTable(){const q=norm(document.getElementById('search').value),cy=document.getElementById('cycleFilter')?.value||'',ca=document.getElementById('carrierFilter')?.value||'',ve=document.getElementById('vehicleFilter')?.value||'',sf=document.getElementById('statusFilter').value?.value||'',ob=document.getElementById('onlyBacklog').checked;let rows=merged().filter(x=>{const tipo=norm(x.rota).startsWith('V')?'VUC':'GM',am=x.adu?.amais||0,fa=x.adu?.faltantes||0,av=x.adu?.avariadas||0;const aduOk=!adf||(adf==='AMAIS'&&am>0)||(adf==='FALTANTE'&&fa>0)||(adf==='AVARIA'&&av>0);return(!cy||x.ciclo===cy)&&(!ca||x.transportadora===ca)&&(!ve||tipo===ve)&&(!sf||x.status===sf)&&aduOk&&(!ob||x.backlog>0)});if(q)rows=rows.filter(x=>norm([x.rota,x.adu?.id,x.transportadora,x.rua,x.vaga].join(' ')).includes(q));rows.sort((a,b)=>a.rota.localeCompare(b.rota, 'pt-BR', {numeric:true}));document.getElementById('tbody').innerHTML=rows.length?rows.map(x=>{const a=x.adu||{};const cls=x.status==='CORRETA'?'ok':x.status==='DIVERGÊNCIA'?'div':x.status==='AGUARDANDO'?'wait':'run';return`<tr class="${x.late?'late':''}"><td><span class="pill ${cls}">${x.status}</span></td><td><b>${esc(x.rota)}</b></td><td>${esc(a.id||'—')}</td><td>${esc(x.transportadora||'—')}</td><td>${esc(x.rua||'—')}</td><td><input class="manual" value="${esc(x.vaga||'')}" placeholder="manual" onchange="setManualVaga('${'${'}esc(x.rota)}',this.value)"></td><td>${a.tempo!=null&&x.adu?esc(a.tempo)+' min':'—'} ${x.late?'⚠️':''}</td><td>${x.adu?a.corretas:'—'}</td><td>${x.adu?a.amais:'—'}</td><td>${x.adu?a.faltantes:'—'}</td><td>${x.adu?a.avariadas:'—'}</td><td><b>${x.adu?x.div:'—'}</b></td><td>${x.backlog||0}</td><td>${esc(a.hora||'—')}</td></tr>`}).join(''):`<tr><td colspan="14" class="empty">Nenhum registro para este filtro.</td></tr>`}
+function limparFiltros(){const s=document.getElementById('search'),cy=document.getElementById('cycleFilter'),ca=document.getElementById('carrierFilter'),ru=document.getElementById('streetFilter'),ve=document.getElementById('vehicleFilter'),st=document.getElementById('statusFilter'),bl=document.getElementById('onlyBacklog');if(s)s.value='';if(cy)cy.value='';if(ca)ca.value='';if(ru)ru.value='';if(ve)ve.value='';if(st)st.value='';if(bl)bl.checked=false;renderTable()}
+function renderTable(){const q=norm(document.getElementById('search').value),cy=document.getElementById('cycleFilter')?.value||'',ca=document.getElementById('carrierFilter')?.value||'',rf=document.getElementById('streetFilter')?.value||'',ve=document.getElementById('vehicleFilter')?.value||'',sf=document.getElementById('statusFilter')?.value||'',ob=document.getElementById('onlyBacklog')?.checked||false;let rows=merged().filter(x=>{const tipo=norm(x.rota).startsWith('V')?'VUC':'GM',am=x.adu?.amais||0,fa=x.adu?.faltantes||0,av=x.adu?.avariadas||0;const aduOk=!sf||(sf==='AMAIS'&&am>0)||(sf==='FALTANTE'&&fa>0)||(sf==='AVARIA'&&av>0)||(!['AMAIS','FALTANTE','AVARIA'].includes(sf)&&x.status===sf);return(!cy||x.ciclo===cy)&&(!ca||x.transportadora===ca)&&(!rf||x.rua===rf)&&(!ve||tipo===ve)&&aduOk&&(!ob||x.backlog>0)});if(q)rows=rows.filter(x=>norm([x.rota,x.adu?.id,x.transportadora,x.rua,x.vaga].join(' ')).includes(q));rows.sort((a,b)=>a.rota.localeCompare(b.rota, 'pt-BR', {numeric:true}));document.getElementById('tbody').innerHTML=rows.length?rows.map(x=>{const a=x.adu||{};const cls=x.status==='CORRETA'?'ok':x.status==='DIVERGÊNCIA'?'div':x.status==='AGUARDANDO'?'wait':'run';return`<tr class="${x.late?'late':''}"><td><span class="pill ${cls}">${x.status}</span></td><td><b>${esc(x.rota)}</b></td><td>${esc(a.id||'—')}</td><td>${esc(x.transportadora||'—')}</td><td>${esc(x.rua||'—')}</td><td><input class="manual" value="${esc(x.vaga||'')}" placeholder="manual" onchange="setManualVaga('${esc(x.rota)}',this.value)"></td><td>${a.tempo!=null&&x.adu?esc(a.tempo)+' min':'—'} ${x.late?'⚠️':''}</td><td>${x.adu?a.corretas:'—'}</td><td>${x.adu?a.amais:'—'}</td><td>${x.adu?a.faltantes:'—'}</td><td>${x.adu?a.avariadas:'—'}</td><td><b>${x.adu?x.div:'—'}</b></td><td>${x.backlog||0}</td><td>${esc(a.hora||'—')}</td></tr>`}).join(''):`<tr><td colspan="14" class="empty">Nenhum registro para este filtro.</td></tr>`}
 function setManualVaga(rota,value){const k=routeKey(rota);manual[k]={...(manual[k]||{}),vaga:String(value||'').trim()};save();}
 function openReport(){renderReport();document.getElementById('reportModal').classList.add('open')}
 function closeReport(){document.getElementById('reportModal').classList.remove('open')}

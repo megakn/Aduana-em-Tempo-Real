@@ -36,7 +36,37 @@ body.light{background:#eef4f8;color:#102238}body.light .top{background:linear-gr
 .progressDone .progressBar{background:linear-gradient(90deg,#39d98a,#62f0b1)}
 body.light .progressBox{background:#f5fbff;border-color:#a9c9dc}
 body.light .progressTrack{background:#e2edf5;border-color:#bfd4e1}
-</style></head><body><div class="wrap">
+
+/* Ajuste: cards mais compactos para caberem melhor na mesma linha */
+.grid{gap:6px!important}
+.kpi{min-height:68px!important;padding:9px 10px!important;border-radius:11px!important}
+.kpi span{font-size:8px!important;letter-spacing:.035em!important;line-height:1.15!important}
+.kpi b{font-size:21px!important;margin-top:5px!important;line-height:1!important}
+@media(max-width:1250px){.grid{grid-template-columns:repeat(6,1fr)!important}}
+@media(max-width:900px){.grid{grid-template-columns:repeat(4,1fr)!important}}
+@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)!important}}
+</style>
+<style id="kn-cards-one-row">
+/* Mantém todos os cards do topo lado a lado no desktop */
+.grid{grid-template-columns:repeat(11,minmax(0,1fr))!important;gap:6px!important}
+.kpi{min-width:0!important;min-height:68px!important;padding:9px 8px!important;border-radius:11px!important}
+.kpi span{font-size:8px!important;line-height:1.15!important;display:block;white-space:normal!important}
+.kpi b{font-size:21px!important;margin-top:5px!important}
+@media(max-width:1350px){.grid{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
+@media(max-width:850px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:520px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+</style>
+
+<style id="kn-cards-horizontal-compact-v1">
+/* Cards mais estreitos na horizontal, mantendo todos lado a lado */
+.grid{grid-template-columns:repeat(11,minmax(0,1fr))!important;gap:5px!important}
+.kpi{padding:9px 7px!important;min-width:0!important;min-height:72px!important;border-radius:11px!important}
+.kpi span{font-size:8px!important;letter-spacing:.02em!important;line-height:1.15!important;white-space:normal!important}
+.kpi b{font-size:21px!important;margin-top:5px!important}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:650px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+</style>
+</head><body><div class="wrap">
 <div class="top"><div class="brand"><small>KN · CONTROLE OPERACIONAL</small><h1>Aduana em Tempo Real</h1><p>Aduana → Divergência → Rua/Vaga → Backlog → Alerta → Ação</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge" id="opDate" title="Data operacional"></span><button id="themeBtn" class="themeBtn" onclick="toggleTheme()" title="Alternar tema" aria-label="Alternar tema">☀</button><div class="live"><i class="dot"></i><span id="lastUpdate">Aguardando atualização</span></div></div></div>
 <div class="grid" id="kpis"></div>
 <div class="main">
@@ -46,7 +76,7 @@ body.light .progressTrack{background:#e2edf5;border-color:#bfd4e1}
 <div class="card" style="margin-top:12px"><div class="head"><h2>Configuração</h2></div><div class="body"><div class="cfg"><label>Tempo esperado da Aduana (min)</label><input id="sla" type="number" min="1" value="15" onchange="saveCfg();render()"></div><div class="tiny" style="margin-top:7px">O limite fica configurável porque o tempo de auditoria da colagem pode ter regra diferente do cronômetro operacional do Layout.</div><div class="actions"><button class="ghost" onclick="syncSupabase()">Atualizar Layout/Backlog</button><button class="primary" onclick="openReport()">Relatório do dia</button><button class="ghost" onclick="exportExcel()">Exportar Excel</button><button class="danger" onclick="resetAll()">Iniciar novo dia</button></div><div class="statusline" id="syncStatus">Tentaremos cruzar Rua/Vaga e Backlog usando as tabelas operacionais existentes.</div></div></div>
 </section>
 <section>
-<div class="card"><div class="head"><h2>Visão operacional</h2><div style="display:flex;gap:8px;align-items:center"><span class="tiny" id="summary"></span><button type="button" id="filterBtn" class="filterBtn" onclick="toggleFilters()">⚙ Filtros</button></div></div><div class="filters recolhido" id="filterPanel"><input id="search" placeholder="Buscar rota, Aduana, transportadora, rua..." oninput="renderTable()"><select id="cycleFilter" onchange="renderTable()"><option value="">Todos os ciclos</option></select><select id="carrierFilter" onchange="renderTable()"><option value="">Todas as transportadoras</option></select><select id="streetFilter" onchange="renderTable()"><option value="">Todas as ruas</option></select><select id="vehicleFilter" onchange="renderTable()"><option value="">VUC + GM</option><option value="VUC">VUC</option><option value="GM">GM</option></select><select id="statusFilter" onchange="renderTable()"><option value="">Todos os status</option><option value="DIVERGÊNCIA">Com divergência</option><option value="CORRETA">Corretas</option><option value="AGUARDANDO">Aguardando Aduana</option><option value="AMAIS">A Mais</option><option value="FALTANTE">Faltante</option><option value="AVARIA">Avariadas</option></select><label class="tiny"><input type="checkbox" id="onlyBacklog" onchange="renderTable()"> Só com Backlog</label><button type="button" class="ghost" onclick="limparFiltros()">Limpar filtros</button></div><div class="tablewrap"><table><thead><tr><th>Status</th><th>Rota</th><th>Aduana</th><th>Transportadora</th><th>Rua</th><th>Vaga</th><th>Tempo</th><th>Corretas</th><th>A mais</th><th>Faltantes</th><th>Avariadas</th><th>Diverg.</th><th>Backlog</th><th>Horário</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
+<div class="card"><div class="head"><h2>Visão operacional</h2><div style="display:flex;gap:8px;align-items:center"><span class="tiny" id="summary"></span><button type="button" id="filterBtn" class="filterBtn" onclick="toggleFilters()">⚙ Filtros</button></div></div><div class="filters recolhido" id="filterPanel"><input id="search" placeholder="Buscar rota, Aduana, transportadora, rua..." oninput="renderTable()"><select id="cycleFilter" onchange="renderTable()"><option value="">Todos os ciclos</option></select><select id="carrierFilter" onchange="renderTable()"><option value="">Todas as transportadoras</option></select><select id="streetFilter" onchange="renderTable()"><option value="">Todas as ruas</option></select><select id="vehicleFilter" onchange="renderTable()"><option value="">VUC + GM</option><option value="VUC">VUC</option><option value="GM">GM</option></select><select id="statusFilter" onchange="renderTable()"><option value="">Todos os status</option><option value="DIVERGÊNCIA">Com divergência</option><option value="CORRETA">Corretas</option><option value="AGUARDANDO">Aguardando Aduana</option><option value="AMAIS">A Mais</option><option value="FALTANTE">Faltante</option><option value="AVARIA">Avariadas</option></select><select id="timeFilter" onchange="renderTable()"><option value="">Todos os tempos</option><option value="ABAIXO">Abaixo do tempo</option><option value="ACIMA">Acima do tempo</option></select><label class="tiny"><input type="checkbox" id="onlyBacklog" onchange="renderTable()"> Só com Backlog</label><button type="button" class="ghost" onclick="limparFiltros()">Limpar filtros</button></div><div class="tablewrap"><table><thead><tr><th>Status</th><th>Rota</th><th>Aduana</th><th>Transportadora</th><th>Rua</th><th>Vaga</th><th>Tempo</th><th>Corretas</th><th>A mais</th><th>Faltantes</th><th>Avariadas</th><th>Diverg.</th><th>Backlog</th><th>Horário</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
 <div class="sectiontitle">🚨 Prioridade de atuação · Divergência + Backlog</div><div class="alertbox" id="alerts"></div>
 </section></div></div><div class="modal" id="reportModal" onclick="if(event.target===this)closeReport()"><div class="report"><div class="reportTop"><div><small style="color:var(--cyan);font-weight:900">RELATÓRIO OPERACIONAL</small><h2>Dashboard diário de Aduana</h2><div class="tiny" id="reportDate"></div></div><div class="actions"><button class="primary" onclick="exportExcel()">Exportar Excel</button><button class="ghost" onclick="closeReport()">Fechar</button></div></div><div class="reportBody"><div class="reportGrid" id="reportKpis"></div><div class="reportCols"><div class="miniPanel"><b>Resultado das Aduanas</b><div id="statusBars"></div></div><div class="miniPanel"><b>Aduanas por transportadora</b><div id="carrierBars"></div></div></div><div class="miniPanel" style="margin-top:12px"><b>Principais ocorrências do dia</b><div id="reportIssues" style="margin-top:10px"></div></div></div></div></div>
 <script>
@@ -256,13 +286,33 @@ function blFor(rota){const k=routeKey(rota);return backlog.filter(b=>routeKey(b.
 function merged(){const map=new Map();for(const p of Object.values(planning)){map.set(routeKey(p.rota),{rota:p.rota,plan:p})}for(const a of Object.values(adu)){const k=routeKey(a.rota);map.set(k,{...(map.get(k)||{rota:a.rota}),adu:a})}return [...map.values()].map(x=>{const a=x.adu,p=x.plan||{},o=opFor(x.rota),bl=blFor(x.rota);const div=a?(a.amais+a.faltantes+a.avariadas):0;const estado=norm(a?.estado||'');const aguardando=!!a&&(/AGUARD|PENDENTE|FILA|ESPERA/.test(estado));let status=aguardando?'AGUARDANDO':a?(div>0?'DIVERGÊNCIA':'CORRETA'):'PLANEJADA';const mk=routeKey(x.rota),man=manual[mk]||{};return{...x,status,div,backlog:bl.length,ciclo:p.ciclo||detectCycle({},x.rota),transportadora:carrierCanonical(a?.transportadora||o?.transportadora||p.transportadora||''),rua:man.rua||ruaByCarrier(a?.transportadora||o?.transportadora||p.transportadora||'')||o?.rua||p.rua||'',vaga:man.vaga||o?.vaga||'',tempo:a?.tempo||0,late:a&&!aguardando&&a.tempo>(+document.getElementById('sla').value||15)}})}
 async function syncSupabase(){if(!db){document.getElementById('syncStatus').textContent='Supabase indisponível neste navegador.';return}document.getElementById('syncStatus').textContent='Atualizando Layout e Backlog...';try{const [or,br]=await Promise.all([db.from('operacoes_vagas').select('*').eq('data_operacao',todayISO()).neq('status','FINALIZADA'),db.from('backlog_pacotes').select('*').eq('data_operacao',todayISO())]);if(!or.error)ops=or.data||[];if(!br.error)backlog=br.data||[];document.getElementById('syncStatus').textContent=`Layout: ${ops.length} operações ativas · Backlog: ${backlog.length} pacotes do dia.`;render()}catch(e){document.getElementById('syncStatus').textContent='Não foi possível consultar Layout/Backlog agora. O painel continua funcionando com os dados locais.'}}
 function updateFilterOptions(rows){const cf=document.getElementById('cycleFilter'),tf=document.getElementById('carrierFilter'),rf=document.getElementById('streetFilter');if(!cf||!tf||!rf)return;const cv=cf.value,tv=tf.value,rv=rf.value;const cycles=[...new Set(rows.map(x=>x.ciclo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));const carriers=[...new Set(rows.map(x=>carrierCanonical(x.transportadora)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));const streets=[...new Set(rows.map(x=>x.rua).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));cf.innerHTML='<option value="">Todos os ciclos</option>'+cycles.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');tf.innerHTML='<option value="">Todas as transportadoras</option>'+carriers.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');rf.innerHTML='<option value="">Todas as ruas</option>'+streets.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if(cycles.includes(cv))cf.value=cv;if(carriers.includes(tv))tf.value=tv;if(streets.includes(rv))rf.value=rv}
-function render(){const de=document.getElementById('opDate');if(de)de.textContent='Data · '+new Date(todayISO()+'T12:00:00').toLocaleDateString('pt-BR');const m=merged(), a=Object.values(adu), div=a.filter(x=>x.amais+x.faltantes+x.avariadas>0), sla=+document.getElementById('sla').value||15;updateFilterOptions(m);const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.length-div.length,'green'],['Com divergência',div.length,'red'],['Aguardando',m.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['A mais',a.reduce((s,x)=>s+x.amais,0),'yellow'],['Pacotes faltantes',a.reduce((s,x)=>s+x.faltantes,0),'red'],['Avariadas',a.reduce((s,x)=>s+x.avariadas,0),'red'],['Com Backlog',m.filter(x=>x.div>0&&x.backlog>0).length,'red']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');document.getElementById('planCount').textContent=`${Object.keys(planning).length} rotas`;document.getElementById('aduCount').textContent=`${a.length} registros`;document.getElementById('summary').textContent=`${m.length} rotas na visão consolidada`;const last=localStorage.getItem(K.last);document.getElementById('lastUpdate').textContent=last?'Última atualização '+new Date(last).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Aguardando atualização';renderTable();renderAlerts()}
+function render(){const de=document.getElementById('opDate');if(de)de.textContent='Data · '+new Date(todayISO()+'T12:00:00').toLocaleDateString('pt-BR');const m=merged(), a=Object.values(adu), div=a.filter(x=>x.amais+x.faltantes+x.avariadas>0), sla=+document.getElementById('sla').value||15;updateFilterOptions(m);const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.length-div.length,'green'],['Com divergência',div.length,'red'],['Aguardando',m.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['Abaixo do tempo',a.filter(x=>x.tempo<=sla).length,'blue'],['A mais',a.reduce((s,x)=>s+x.amais,0),'violet'],['Pacotes faltantes',a.reduce((s,x)=>s+x.faltantes,0),'orange'],['Avariadas',a.reduce((s,x)=>s+x.avariadas,0),'indigo'],['Com Backlog',m.filter(x=>x.div>0&&x.backlog>0).length,'turquoise']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');document.getElementById('planCount').textContent=`${Object.keys(planning).length} rotas`;document.getElementById('aduCount').textContent=`${a.length} registros`;document.getElementById('summary').textContent=`${m.length} rotas na visão consolidada`;const last=localStorage.getItem(K.last);document.getElementById('lastUpdate').textContent=last?'Última atualização '+new Date(last).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Aguardando atualização';renderTable();renderAlerts()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function toggleFilters(){const p=document.getElementById('filterPanel'),b=document.getElementById('filterBtn');if(!p)return;const abre=p.classList.contains('recolhido');p.classList.toggle('recolhido');if(b){b.classList.toggle('ativo',abre);b.innerHTML=abre?'✕ Fechar filtros':'⚙ Filtros'}}
-function limparFiltros(){const s=document.getElementById('search'),cy=document.getElementById('cycleFilter'),ca=document.getElementById('carrierFilter'),ru=document.getElementById('streetFilter'),ve=document.getElementById('vehicleFilter'),st=document.getElementById('statusFilter'),bl=document.getElementById('onlyBacklog');if(s)s.value='';if(cy)cy.value='';if(ca)ca.value='';if(ru)ru.value='';if(ve)ve.value='';if(st)st.value='';if(bl)bl.checked=false;renderTable()}
-function getFilteredRows(){const q=norm(document.getElementById('search')?.value||''),cy=document.getElementById('cycleFilter')?.value||'',ca=document.getElementById('carrierFilter')?.value||'',rf=document.getElementById('streetFilter')?.value||'',ve=document.getElementById('vehicleFilter')?.value||'',sf=document.getElementById('statusFilter')?.value||'',ob=document.getElementById('onlyBacklog')?.checked||false;let rows=merged().filter(x=>{const tipo=norm(x.rota).startsWith('V')?'VUC':'GM',am=x.adu?.amais||0,fa=x.adu?.faltantes||0,av=x.adu?.avariadas||0;const aduOk=!sf||(sf==='AMAIS'&&am>0)||(sf==='FALTANTE'&&fa>0)||(sf==='AVARIA'&&av>0)||(!['AMAIS','FALTANTE','AVARIA'].includes(sf)&&x.status===sf);return(!cy||x.ciclo===cy)&&(!ca||x.transportadora===ca)&&(!rf||x.rua===rf)&&(!ve||tipo===ve)&&aduOk&&(!ob||x.backlog>0)});if(q)rows=rows.filter(x=>norm([x.rota,x.adu?.id,x.transportadora,x.rua,x.vaga].join(' ')).includes(q));return rows}
-function renderFilteredKpis(rows){const a=rows.filter(x=>x.adu),div=a.filter(x=>x.div>0),sla=+document.getElementById('sla').value||15;const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.filter(x=>x.status==='CORRETA').length,'green'],['Com divergência',div.length,'red'],['Aguardando',rows.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['A mais',a.reduce((s,x)=>s+(x.adu?.amais||0),0),'yellow'],['Pacotes faltantes',a.reduce((s,x)=>s+(x.adu?.faltantes||0),0),'red'],['Avariadas',a.reduce((s,x)=>s+(x.adu?.avariadas||0),0),'red'],['Com Backlog',rows.filter(x=>x.div>0&&x.backlog>0).length,'red']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');document.getElementById('summary').textContent=`${rows.length} rotas no filtro atual`}
-function renderTable(){let rows=getFilteredRows();renderFilteredKpis(rows);rows.sort((a,b)=>a.rota.localeCompare(b.rota, 'pt-BR', {numeric:true}));document.getElementById('tbody').innerHTML=rows.length?rows.map(x=>{const a=x.adu||{};const cls=x.status==='CORRETA'?'ok':x.status==='DIVERGÊNCIA'?'div':x.status==='AGUARDANDO'?'wait':'run';return`<tr class="${x.late?'late':''}"><td><span class="pill ${cls}">${x.status}</span></td><td><b>${esc(x.rota)}</b></td><td>${esc(a.id||'—')}</td><td>${esc(x.transportadora||'—')}</td><td>${esc(x.rua||'—')}</td><td><input class="manual" value="${esc(x.vaga||'')}" placeholder="manual" onchange="setManualVaga('${esc(x.rota)}',this.value)"></td><td>${a.tempo!=null&&x.adu?esc(a.tempo)+' min':'—'} ${x.late?'⚠️':''}</td><td>${x.adu?a.corretas:'—'}</td><td>${x.adu?a.amais:'—'}</td><td>${x.adu?a.faltantes:'—'}</td><td>${x.adu?a.avariadas:'—'}</td><td><b>${x.adu?x.div:'—'}</b></td><td>${x.backlog||0}</td><td>${esc(a.hora||'—')}</td></tr>`}).join(''):`<tr><td colspan="14" class="empty">Nenhum registro para este filtro.</td></tr>`}
+function limparFiltros(){const s=document.getElementById('search'),cy=document.getElementById('cycleFilter'),ca=document.getElementById('carrierFilter'),ru=document.getElementById('streetFilter'),ve=document.getElementById('vehicleFilter'),st=document.getElementById('statusFilter'),tm=document.getElementById('timeFilter'),bl=document.getElementById('onlyBacklog');if(s)s.value='';if(cy)cy.value='';if(ca)ca.value='';if(ru)ru.value='';if(ve)ve.value='';if(st)st.value='';if(tm)tm.value='';if(bl)bl.checked=false;renderTable()}
+function getFilteredRows(){const q=norm(document.getElementById('search')?.value||''),cy=document.getElementById('cycleFilter')?.value||'',ca=document.getElementById('carrierFilter')?.value||'',rf=document.getElementById('streetFilter')?.value||'',ve=document.getElementById('vehicleFilter')?.value||'',sf=document.getElementById('statusFilter')?.value||'',tf=document.getElementById('timeFilter')?.value||'',ob=document.getElementById('onlyBacklog')?.checked||false,sla=+document.getElementById('sla').value||15;let rows=merged().filter(x=>{const tipo=norm(x.rota).startsWith('V')?'VUC':'GM',am=x.adu?.amais||0,fa=x.adu?.faltantes||0,av=x.adu?.avariadas||0;const aduOk=!sf||(sf==='AMAIS'&&am>0)||(sf==='FALTANTE'&&fa>0)||(sf==='AVARIA'&&av>0)||(!['AMAIS','FALTANTE','AVARIA'].includes(sf)&&x.status===sf);const tempoOk=!tf||(x.adu&&((tf==='ACIMA'&&Number(x.tempo)>sla)||(tf==='ABAIXO'&&Number(x.tempo)<=sla)));return(!cy||x.ciclo===cy)&&(!ca||x.transportadora===ca)&&(!rf||x.rua===rf)&&(!ve||tipo===ve)&&aduOk&&tempoOk&&(!ob||x.backlog>0)});if(q)rows=rows.filter(x=>norm([x.rota,x.adu?.id,x.transportadora,x.rua,x.vaga].join(' ')).includes(q));return rows}
+function renderFilteredKpis(rows){const a=rows.filter(x=>x.adu),div=a.filter(x=>x.div>0),sla=+document.getElementById('sla').value||15;const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.filter(x=>x.status==='CORRETA').length,'green'],['Com divergência',div.length,'red'],['Aguardando',rows.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['Abaixo do tempo',a.filter(x=>x.tempo<=sla).length,'blue'],['A mais',a.reduce((s,x)=>s+(x.adu?.amais||0),0),'violet'],['Pacotes faltantes',a.reduce((s,x)=>s+(x.adu?.faltantes||0),0),'orange'],['Avariadas',a.reduce((s,x)=>s+(x.adu?.avariadas||0),0),'indigo'],['Com Backlog',rows.filter(x=>x.div>0&&x.backlog>0).length,'turquoise']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');document.getElementById('summary').textContent=`${rows.length} rotas no filtro atual`}
+function updateCardLeds(){
+  const cards=[...document.querySelectorAll('#kpis .kpi')];
+  cards.forEach(c=>c.classList.remove('led-on'));
+  const labels=cards.map(c=>norm(c.querySelector('span')?.textContent||''));
+  const light=(name)=>{const i=labels.indexOf(norm(name));if(i>=0)cards[i].classList.add('led-on')};
+  const sf=document.getElementById('statusFilter')?.value||'';
+  const tf=document.getElementById('timeFilter')?.value||'';
+  const ob=document.getElementById('onlyBacklog')?.checked||false;
+  if(sf==='DIVERGÊNCIA')light('Com divergência');
+  else if(sf==='CORRETA')light('Corretas');
+  else if(sf==='AGUARDANDO')light('Aguardando');
+  else if(sf==='AMAIS')light('A mais');
+  else if(sf==='FALTANTE')light('Pacotes faltantes');
+  else if(sf==='AVARIA')light('Avariadas');
+  if(tf==='ACIMA'||tf==='acima'||tf==='above')light('Acima do tempo');
+  if(tf==='ABAIXO'||tf==='abaixo'||tf==='below')light('Abaixo do tempo');
+  if(ob)light('Com Backlog');
+  const hasAnyFilter=!!(document.getElementById('search')?.value||document.getElementById('cycleFilter')?.value||document.getElementById('carrierFilter')?.value||document.getElementById('streetFilter')?.value||document.getElementById('vehicleFilter')?.value||sf||tf||ob);
+  if(hasAnyFilter && !cards.some(c=>c.classList.contains('led-on')))light('Realizadas');
+}
+function renderTable(){let rows=getFilteredRows();renderFilteredKpis(rows);updateCardLeds();rows.sort((a,b)=>a.rota.localeCompare(b.rota, 'pt-BR', {numeric:true}));document.getElementById('tbody').innerHTML=rows.length?rows.map(x=>{const a=x.adu||{};const cls=x.status==='CORRETA'?'ok':x.status==='DIVERGÊNCIA'?'div':x.status==='AGUARDANDO'?'wait':'run';return`<tr class="${x.late?'late':''}"><td><span class="pill ${cls}">${x.status}</span></td><td><b>${esc(x.rota)}</b></td><td>${esc(a.id||'—')}</td><td>${esc(x.transportadora||'—')}</td><td>${esc(x.rua||'—')}</td><td><input class="manual" value="${esc(x.vaga||'')}" placeholder="manual" onchange="setManualVaga('${esc(x.rota)}',this.value)"></td><td>${a.tempo!=null&&x.adu?esc(a.tempo)+' min':'—'} ${x.late?'⚠️':''}</td><td>${x.adu?a.corretas:'—'}</td><td>${x.adu?a.amais:'—'}</td><td>${x.adu?a.faltantes:'—'}</td><td>${x.adu?a.avariadas:'—'}</td><td><b>${x.adu?x.div:'—'}</b></td><td>${x.backlog||0}</td><td>${esc(a.hora||'—')}</td></tr>`}).join(''):`<tr><td colspan="14" class="empty">Nenhum registro para este filtro.</td></tr>`}
 function setManualVaga(rota,value){const k=routeKey(rota);manual[k]={...(manual[k]||{}),vaga:String(value||'').trim()};save();}
 function openReport(){renderReport();document.getElementById('reportModal').classList.add('open')}
 function closeReport(){document.getElementById('reportModal').classList.remove('open')}
@@ -270,4 +320,140 @@ function renderReport(){const rows=merged(),done=rows.filter(x=>x.adu),ok=done.f
 function exportExcel(){const rows=merged(),done=rows.filter(x=>x.adu),dv=done.filter(x=>x.div>0),late=done.filter(x=>x.late),withBl=done.filter(x=>x.backlog>0);const wb=XLSX.utils.book_new();const resumo=[['RELATÓRIO OPERACIONAL DE ADUANA'],['Data',new Date().toLocaleDateString('pt-BR')],['Última atualização',new Date().toLocaleString('pt-BR')],[],['INDICADOR','VALOR'],['Rotas na visão',rows.length],['Aduanas realizadas',done.length],['Corretas',done.filter(x=>x.status==='CORRETA').length],['Com divergência',dv.length],['Aguardando',rows.filter(x=>x.status==='AGUARDANDO').length],['Acima do tempo',late.length],['Unidades a mais',done.reduce((s,x)=>s+(x.adu?.amais||0),0)],['Pacotes faltantes',done.reduce((s,x)=>s+(x.adu?.faltantes||0),0)],['Avariadas',done.reduce((s,x)=>s+(x.adu?.avariadas||0),0)],['Rotas com backlog',withBl.length]];const ws0=XLSX.utils.aoa_to_sheet(resumo);ws0['!cols']=[{wch:30},{wch:22}];XLSX.utils.book_append_sheet(wb,ws0,'Dashboard');const data=rows.map(x=>({Status:x.status,Rota:x.rota,Aduana:x.adu?.id||'',Transportadora:x.transportadora||'',Rua:x.rua||'',Vaga:x.vaga||'',Tempo_min:x.adu?.tempo??'',Corretas:x.adu?.corretas??'',A_mais:x.adu?.amais??'',Faltantes:x.adu?.faltantes??'',Avariadas:x.adu?.avariadas??'',Divergencia:x.adu?x.div:'',Backlog:x.backlog,Horario:x.adu?.hora||''}));const add=(name,arr)=>{const ws=XLSX.utils.json_to_sheet(arr);ws['!cols']=[{wch:14},{wch:14},{wch:16},{wch:24},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:20}];XLSX.utils.book_append_sheet(wb,ws,name)};add('Visao Operacional',data);add('Divergencias',data.filter(x=>x.Divergencia>0));add('Acima do Tempo',data.filter((x,i)=>{const r=rows[i];return r?.late}));add('Com Backlog',data.filter(x=>x.Backlog>0));const by={};done.forEach(x=>{const c=x.transportadora||'Não identificada';by[c]??={Transportadora:c,Realizadas:0,Corretas:0,Divergentes:0,A_mais:0,Faltantes:0,Avariadas:0,Backlog:0};const z=by[c];z.Realizadas++;z.Corretas+=x.status==='CORRETA';z.Divergentes+=x.status==='DIVERGÊNCIA';z.A_mais+=x.adu?.amais||0;z.Faltantes+=x.adu?.faltantes||0;z.Avariadas+=x.adu?.avariadas||0;z.Backlog+=x.backlog});add('Transportadoras',Object.values(by).sort((a,b)=>b.Realizadas-a.Realizadas));XLSX.writeFile(wb,`Relatorio_Aduana_${todayISO()}.xlsx`)}
 function renderAlerts(){const rows=merged().filter(x=>x.div>0&&x.backlog>0).sort((a,b)=>b.backlog-a.backlog||b.div-a.div);document.getElementById('alerts').innerHTML=rows.length?rows.map(x=>`<div class="alert"><strong>🚨 ALERTA — ADUANA COM DIVERGÊNCIA + BACKLOG</strong><div class="meta"><b>Aduana:</b> ${esc(x.adu?.id||x.rota)} · <b>Rota:</b> ${esc(x.rota)} · <b>Rua:</b> ${esc(x.rua||'não localizada')} · <b>Vaga:</b> ${esc(x.vaga||'—')}<br><b>Divergência:</b> ${x.div} pacote(s) — A mais: ${x.adu.amais} · Faltantes: ${x.adu.faltantes} · Avariadas: ${x.adu.avariadas}<br><b>Backlog relacionado:</b> ${x.backlog} pacote(s) · <b>Tempo de Aduana:</b> ${x.adu.tempo} min ${x.late?'· ⚠️ ACIMA DO TEMPO':''}</div></div>`).join(''):`<div class="empty card">Nenhuma Aduana com divergência + Backlog neste momento.</div>`}
 applyTheme();ensureOperationalDay();render();syncSupabase();if(db){try{db.channel('aduana-live').on('postgres_changes',{event:'*',schema:'public',table:'operacoes_vagas'},syncSupabase).on('postgres_changes',{event:'*',schema:'public',table:'backlog_pacotes'},syncSupabase).subscribe()}catch(e){}}
-</script></body></html>
+</script>
+<style id="kn-petroleo-sem-neon">
+/* Azul petróleo uniforme — neon removido */
+body{background:linear-gradient(135deg,#03141f 0%,#052434 50%,#041b29 100%)!important}
+.top,.card{background:linear-gradient(180deg,#082a3b 0%,#061f2e 100%)!important;border-color:#17465b!important;box-shadow:0 10px 26px rgba(0,0,0,.20)!important}
+.head{background:linear-gradient(90deg,#0a3042,#072536)!important;border-bottom-color:#1b4c61!important}
+.filters,.tablewrap{background:#061f2d!important}
+th{background:#0a3042!important;color:#8fd4e8!important}
+tr:hover{background:#0b3448!important}
+.grid .kpi,.grid .kpi.led-on{background:linear-gradient(180deg,#0b3144 0%,#082536 100%)!important;border:1px solid #1e5369!important;border-top:1px solid #1e5369!important;box-shadow:0 5px 14px rgba(0,0,0,.18)!important;transform:none!important;filter:none!important}
+.grid .kpi span,.grid .kpi.led-on span{color:#a9cad8!important;text-shadow:none!important}
+.grid .kpi b,.grid .kpi.led-on b{color:#f4fbff!important;text-shadow:none!important}
+.filterBtn,.filterBtn.ativo{background:#0b3043!important;color:#d9eef6!important;border-color:#245a70!important;box-shadow:none!important}
+.filters input,.filters select,.manual,textarea{background:#061d2a!important;border-color:#25566b!important;color:#f4fbff!important}
+.badge{background:#0b3549!important;color:#9edff1!important;border-color:#1f5870!important}
+</style>
+</body></html>
+<style id="kn-cards-fill-width-final">
+/* 10 indicadores: ocupam 100% da largura do painel, sem espaço vazio à direita */
+@media (min-width:1101px){
+  .grid{
+    width:100%!important;
+    grid-template-columns:repeat(10,minmax(0,1fr))!important;
+    gap:6px!important;
+    justify-content:stretch!important;
+  }
+  .grid .kpi{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+  }
+}
+
+/* ===== CARDS NEON: CORES FORTES + LED DO FILTRO ===== */
+.kpi{
+  position:relative!important; overflow:visible!important;
+  background:linear-gradient(180deg,#0c2137 0%,#071626 100%)!important;
+  border-width:1.5px!important;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease!important;
+}
+.kpi b{font-weight:950!important}
+.kpi.cyan{border-color:#22c7ff!important}.kpi.cyan b{color:#22c7ff!important;text-shadow:0 0 8px #22c7ff88}
+.kpi.green{border-color:#48f08d!important}.kpi.green b{color:#48f08d!important;text-shadow:0 0 8px #48f08d88}
+.kpi.red{border-color:#ff3f68!important}.kpi.red b{color:#ff526f!important;text-shadow:0 0 8px #ff3f6888}
+.kpi.yellow{border-color:#ffc52e!important}.kpi.yellow b{color:#ffc52e!important;text-shadow:0 0 8px #ffc52e88}
+.kpi.blue{border-color:#35a7ff!important}.kpi.blue b{color:#58b8ff!important;text-shadow:0 0 8px #35a7ff88}
+.kpi.violet{border-color:#c657ff!important}.kpi.violet b{color:#d178ff!important;text-shadow:0 0 8px #c657ff88}
+.kpi.orange{border-color:#ff7a35!important}.kpi.orange b{color:#ff8c52!important;text-shadow:0 0 8px #ff7a3588}
+.kpi.indigo{border-color:#6574ff!important}.kpi.indigo b{color:#7f8cff!important;text-shadow:0 0 8px #6574ff88}
+.kpi.turquoise{border-color:#20e6d1!important}.kpi.turquoise b{color:#38f1dd!important;text-shadow:0 0 8px #20e6d188}
+
+/* quando um filtro está ativo, o card correspondente ACENDE forte como LED/neon */
+.kpi.led-on{transform:translateY(-2px) scale(1.015)!important;filter:saturate(1.55) brightness(1.15)!important;z-index:5}
+.kpi.led-on.cyan{box-shadow:0 0 0 1px #22c7ff,0 0 12px #22c7ff,0 0 30px #22c7ff99,inset 0 0 22px #22c7ff28!important}
+.kpi.led-on.green{box-shadow:0 0 0 1px #48f08d,0 0 12px #48f08d,0 0 30px #48f08d99,inset 0 0 22px #48f08d28!important}
+.kpi.led-on.red{box-shadow:0 0 0 1px #ff3f68,0 0 12px #ff3f68,0 0 30px #ff3f6899,inset 0 0 22px #ff3f6828!important}
+.kpi.led-on.yellow{box-shadow:0 0 0 1px #ffc52e,0 0 12px #ffc52e,0 0 30px #ffc52e99,inset 0 0 22px #ffc52e28!important}
+.kpi.led-on.blue{box-shadow:0 0 0 1px #35a7ff,0 0 12px #35a7ff,0 0 30px #35a7ff99,inset 0 0 22px #35a7ff28!important}
+.kpi.led-on.violet{box-shadow:0 0 0 1px #c657ff,0 0 12px #c657ff,0 0 30px #c657ff99,inset 0 0 22px #c657ff28!important}
+.kpi.led-on.orange{box-shadow:0 0 0 1px #ff7a35,0 0 12px #ff7a35,0 0 30px #ff7a3599,inset 0 0 22px #ff7a3528!important}
+.kpi.led-on.indigo{box-shadow:0 0 0 1px #6574ff,0 0 12px #6574ff,0 0 30px #6574ff99,inset 0 0 22px #6574ff28!important}
+.kpi.led-on.turquoise{box-shadow:0 0 0 1px #20e6d1,0 0 12px #20e6d1,0 0 30px #20e6d199,inset 0 0 22px #20e6d128!important}
+.kpi.led-on b{text-shadow:0 0 5px currentColor,0 0 12px currentColor,0 0 24px currentColor!important}
+</style>
+
+<style id="kn-neon-clean-v2">
+/* Neon limpo: borda e texto luminosos, fundo escuro sem mancha */
+.kpi{background:linear-gradient(180deg,#0b1d31 0%,#071523 100%)!important;box-shadow:none!important;filter:none!important}
+.kpi.cyan{border-color:#19d7ff!important}.kpi.cyan b{color:#35e3ff!important}
+.kpi.green{border-color:#52ff91!important}.kpi.green b{color:#5dff9b!important}
+.kpi.red{border-color:#ff3868!important}.kpi.red b{color:#ff5578!important}
+.kpi.yellow{border-color:#ffd23d!important}.kpi.yellow b{color:#ffda55!important}
+.kpi.blue{border-color:#19bfff!important}.kpi.blue b{color:#39ccff!important}
+.kpi.violet{border-color:#e14cff!important}.kpi.violet b{color:#ea6bff!important}
+.kpi.orange{border-color:#ff7b31!important}.kpi.orange b{color:#ff9259!important}
+.kpi.indigo{border-color:#6d63ff!important}.kpi.indigo b{color:#8a83ff!important}
+.kpi.turquoise{border-color:#14f0d2!important}.kpi.turquoise b{color:#3af7dd!important}
+.kpi b{text-shadow:0 0 5px currentColor,0 0 10px currentColor!important}
+.kpi.led-on{transform:translateY(-1px)!important;filter:none!important;background:linear-gradient(180deg,#0c2035 0%,#071523 100%)!important}
+.kpi.led-on.cyan{box-shadow:0 0 4px #19d7ff,0 0 10px #19d7ff99,0 0 18px #19d7ff55!important}
+.kpi.led-on.green{box-shadow:0 0 4px #52ff91,0 0 10px #52ff9199,0 0 18px #52ff9155!important}
+.kpi.led-on.red{box-shadow:0 0 4px #ff3868,0 0 10px #ff386899,0 0 18px #ff386855!important}
+.kpi.led-on.yellow{box-shadow:0 0 4px #ffd23d,0 0 10px #ffd23d99,0 0 18px #ffd23d55!important}
+.kpi.led-on.blue{box-shadow:0 0 4px #19bfff,0 0 10px #19bfff99,0 0 18px #19bfff55!important}
+.kpi.led-on.violet{box-shadow:0 0 4px #e14cff,0 0 10px #e14cff99,0 0 18px #e14cff55!important}
+.kpi.led-on.orange{box-shadow:0 0 4px #ff7b31,0 0 10px #ff7b3199,0 0 18px #ff7b3155!important}
+.kpi.led-on.indigo{box-shadow:0 0 4px #6d63ff,0 0 10px #6d63ff99,0 0 18px #6d63ff55!important}
+.kpi.led-on.turquoise{box-shadow:0 0 4px #14f0d2,0 0 10px #14f0d299,0 0 18px #14f0d255!important}
+.kpi.led-on b{text-shadow:0 0 4px currentColor,0 0 9px currentColor,0 0 16px currentColor!important}
+</style>
+
+
+<style id="kn-central-visual-final">
+/* VISUAL CENTRAL KN — contraste alto, fundo limpo e LED somente quando ativo */
+body{background:linear-gradient(135deg,#03111d 0%,#041827 48%,#03121f 100%)!important;color:#f7fbff!important}
+.top,.card{background:linear-gradient(180deg,rgba(8,31,50,.98),rgba(5,23,38,.98))!important;border-color:#1c4663!important}
+.head{background:linear-gradient(90deg,#08243a,#061c2f)!important;border-bottom-color:#1d4865!important}
+.brand h1,.head h2{color:#fff!important}.brand p,.tiny,.statusline{color:#9eb7cb!important}
+.filters{background:#061b2d!important}.filters input,.filters select,.manual,textarea{background:#041522!important;color:#f4f9ff!important;border-color:#285777!important}
+th{background:#08243a!important;color:#78cfff!important}td{color:#f4f8fc!important;border-bottom-color:#17364e!important}
+tr:hover{background:#0a2941!important}
+
+/* cards em repouso: Central KN, nítidos e sem aspecto fosco */
+.grid .kpi{
+  background:linear-gradient(180deg,#0b2136 0%,#081827 100%)!important;
+  border:1px solid #244a65!important;
+  box-shadow:0 6px 16px rgba(0,0,0,.22)!important;
+  transform:none!important;filter:none!important;
+  opacity:1!important;
+}
+.grid .kpi span{color:#c9d9e6!important;font-weight:900!important;text-shadow:none!important}
+.grid .kpi b{color:#fff!important;text-shadow:none!important;font-weight:950!important}
+
+/* pequena identificação de cor mesmo desligado */
+.grid .kpi.cyan{border-top:2px solid #25cfff!important}.grid .kpi.green{border-top:2px solid #47ee8b!important}.grid .kpi.red{border-top:2px solid #ff4d70!important}.grid .kpi.yellow{border-top:2px solid #ffd044!important}.grid .kpi.blue{border-top:2px solid #36baff!important}.grid .kpi.violet{border-top:2px solid #d95cff!important}.grid .kpi.orange{border-top:2px solid #ff8848!important}.grid .kpi.indigo{border-top:2px solid #8177ff!important}.grid .kpi.turquoise{border-top:2px solid #32e7d2!important}
+
+/* LED ativo: borda acende como na Central KN; fundo continua limpo */
+.grid .kpi.led-on{transform:translateY(-1px)!important;background:linear-gradient(180deg,#0d2943,#081a2b)!important;z-index:4!important}
+.grid .kpi.led-on span{color:#fff!important}
+.grid .kpi.led-on b{color:var(--led,#5edcff)!important;text-shadow:0 0 5px var(--led),0 0 12px color-mix(in srgb,var(--led) 70%,transparent)!important}
+.grid .kpi.led-on.cyan{--led:#25d9ff;border:1px solid #25d9ff!important;box-shadow:0 0 0 1px #25d9ff55,0 0 10px #25d9ff99,0 0 20px #25d9ff44!important}
+.grid .kpi.led-on.green{--led:#4cff92;border:1px solid #4cff92!important;box-shadow:0 0 0 1px #4cff9255,0 0 10px #4cff9299,0 0 20px #4cff9244!important}
+.grid .kpi.led-on.red{--led:#ff4c72;border:1px solid #ff4c72!important;box-shadow:0 0 0 1px #ff4c7255,0 0 10px #ff4c7299,0 0 20px #ff4c7244!important}
+.grid .kpi.led-on.yellow{--led:#ffd348;border:1px solid #ffd348!important;box-shadow:0 0 0 1px #ffd34855,0 0 10px #ffd34899,0 0 20px #ffd34844!important}
+.grid .kpi.led-on.blue{--led:#35bdff;border:1px solid #35bdff!important;box-shadow:0 0 0 1px #35bdff55,0 0 10px #35bdff99,0 0 20px #35bdff44!important}
+.grid .kpi.led-on.violet{--led:#dc62ff;border:1px solid #dc62ff!important;box-shadow:0 0 0 1px #dc62ff55,0 0 10px #dc62ff99,0 0 20px #dc62ff44!important}
+.grid .kpi.led-on.orange{--led:#ff8b4a;border:1px solid #ff8b4a!important;box-shadow:0 0 0 1px #ff8b4a55,0 0 10px #ff8b4a99,0 0 20px #ff8b4a44!important}
+.grid .kpi.led-on.indigo{--led:#887fff;border:1px solid #887fff!important;box-shadow:0 0 0 1px #887fff55,0 0 10px #887fff99,0 0 20px #887fff44!important}
+.grid .kpi.led-on.turquoise{--led:#35ead6;border:1px solid #35ead6!important;box-shadow:0 0 0 1px #35ead655,0 0 10px #35ead699,0 0 20px #35ead644!important}
+
+/* botão filtros também fica aceso quando o painel está aberto */
+.filterBtn{background:#09283f!important;color:#e9f6ff!important;border-color:#2a5c7c!important}
+.filterBtn.ativo{color:#55dcff!important;border-color:#37cfff!important;box-shadow:0 0 8px #37cfff77,0 0 16px #37cfff33!important;background:#0b314d!important}
+
+body.light .grid .kpi{background:#fff!important;border-color:#c8d9e6!important;box-shadow:0 6px 16px rgba(31,69,98,.08)!important}
+body.light .grid .kpi span{color:#4f687c!important}body.light .grid .kpi b{color:#12263a!important}
+</style>

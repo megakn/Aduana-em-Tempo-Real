@@ -406,10 +406,20 @@ Concluída"></textarea>
       <div class="card solid" data-in>
         <div class="head">
           <h2>Visão operacional</h2>
-          <div class="flex items-center gap-3"><span class="tiny mono" id="summary"></span><button type="button" id="filterBtn" class="filterBtn" onclick="toggleFilters()">⚙ Filtros</button></div>
+          <div class="flex items-center gap-3" style="flex-wrap:wrap;justify-content:flex-end">
+            <span class="tiny mono" id="summary"></span>
+            <button type="button" class="primary" onclick="openReport()">📊 Relatório do dia</button>
+            <button type="button" class="ghost" onclick="exportExcel()">📥 Exportar Excel</button>
+            <button type="button" id="filterBtn" class="filterBtn" onclick="toggleFilters()">⚙ Filtros</button>
+          </div>
         </div>
         <div class="filters recolhido" id="filterPanel">
-          <label style="font-weight:700;color:var(--hi)">Data <input id="dateFilter" type="date" onchange="changeOperationalDate(this.value)" style="width:145px"></label>
+          <label style="font-weight:700;color:var(--hi)">Data
+  <span style="display:inline-flex;align-items:center;gap:6px">
+    <input id="dateFilter" type="date" onchange="changeOperationalDate(this.value)" style="width:145px;cursor:pointer" title="Escolha a data do histórico">
+    <button type="button" class="ghost" onclick="openDateCalendar()" title="Abrir calendário" aria-label="Abrir calendário" style="padding:8px 11px;min-width:auto">📅</button>
+  </span>
+</label>
           <input id="search" placeholder="Buscar rota, Aduana, transportadora, LOG, motorista, rua..." oninput="renderTable()">
           <select id="cycleFilter" onchange="renderTable()"><option value="">Todos os ciclos</option></select>
           <select id="carrierFilter" onchange="renderTable()"><option value="">Todas as transportadoras</option></select>
@@ -598,6 +608,59 @@ function toggleSidebar(){
 const SUPABASE_URL='https://cnpcsovjomonctbggbac.supabase.co';
 const SUPABASE_KEY='sb_publishable_1lqP4jYYMR96Aq8DX-DSHA_JKcGESRt';
 let db=null; try{db=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY)}catch(e){}
+
+function openDateCalendar(){
+  const el=document.getElementById('dateFilter');
+  if(!el)return;
+  try{
+    if(typeof el.showPicker==='function') el.showPicker();
+    else { el.focus(); el.click(); }
+  }catch(e){ el.focus(); }
+}
+
+// ===== HISTÓRICO PERMANENTE NO SUPABASE =====
+let remoteSaveTimer=null;
+async function loadDayFromSupabase(date){
+  if(!db) return false;
+  try{
+    const {data,error}=await db.from('aduana_historico_diario')
+      .select('data_operacao,aduana,planejamento,manual,atualizado_em')
+      .eq('data_operacao',date).maybeSingle();
+    if(error) throw error;
+    if(!data) return false;
+    adu=data.aduana||{};
+    planning=data.planejamento||{};
+    manual=data.manual||{};
+    history[date]={adu,planning,manual,last:data.atualizado_em||new Date().toISOString()};
+    LS.setItem(K.history,JSON.stringify(history));
+    LS.setItem(K.adu,JSON.stringify(adu)); LS.setItem(K.plan,JSON.stringify(planning)); LS.setItem(K.manual,JSON.stringify(manual));
+    return true;
+  }catch(e){
+    console.warn('Histórico Supabase indisponível:',e);
+    return false;
+  }
+}
+async function saveDayToSupabase(){
+  if(!db) return;
+  const payload={
+    data_operacao:activeDate,
+    aduana:adu||{},
+    planejamento:planning||{},
+    manual:manual||{},
+    atualizado_em:new Date().toISOString()
+  };
+  const {error}=await db.from('aduana_historico_diario').upsert(payload,{onConflict:'data_operacao'});
+  if(error){
+    console.error('Erro ao salvar histórico:',error);
+    const el=document.getElementById('syncStatus');
+    if(el)el.textContent='Atenção: histórico ficou local; falha ao salvar no Supabase.';
+  }
+}
+function queueRemoteSave(){
+  clearTimeout(remoteSaveTimer);
+  remoteSaveTimer=setTimeout(()=>saveDayToSupabase(),350);
+}
+
 const K={adu:'aduana_rt_v1',plan:'aduana_plan_v1',cfg:'aduana_cfg_v1',last:'aduana_last_v1',manual:'aduana_manual_v1',theme:'aduana_theme_v1',day:'aduana_operational_day_v1',history:'aduana_history_v2',activeDate:'aduana_active_date_v2'};
 let adu={}, planning={}, manual={}, ops=[], backlog=[], history={};
 const norm=s=>String(s??'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
@@ -639,18 +702,24 @@ function persistDay(){
   LS.setItem(K.adu,JSON.stringify(adu)); LS.setItem(K.plan,JSON.stringify(planning)); LS.setItem(K.manual,JSON.stringify(manual));
   LS.setItem(K.last,history[activeDate].last); LS.setItem(K.day,activeDate);
 }
-function changeOperationalDate(date){
+async function changeOperationalDate(date){
   if(!date)return;
-  persistDay();
-  loadDay(date);
+  persistDay(); await saveDayToSupabase();
+  activeDate=date; LS.setItem(K.activeDate,activeDate);
+  const remote=await loadDayFromSupabase(date);
+  if(!remote) loadDay(date);
+  else{
+    ops=[]; backlog=[];
+    const df=document.getElementById('dateFilter'); if(df)df.value=activeDate;
+  }
   const ps=document.getElementById('planStatus');
-  if(ps)ps.textContent=history[date] ? `Histórico de ${new Date(date+'T12:00:00').toLocaleDateString('pt-BR')} carregado.` : 'Data sem histórico. Carregue a Base / Planification / Planejamento deste dia.';
+  if(ps)ps.textContent=(remote||history[date]) ? `Histórico de ${new Date(date+'T12:00:00').toLocaleDateString('pt-BR')} carregado.` : 'Data sem histórico. Carregue a Base / Planification / Planejamento deste dia.';
   render();
-  syncSupabase();
+  await syncSupabase();
 }
 function applyTheme(){const light=LS.getItem(K.theme)==='light';document.body.classList.toggle('light',light);const b=document.getElementById('themeBtn');if(b){b.innerHTML=light?'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>':'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';b.title=light?'Voltar ao tema escuro':'Usar tema claro';b.setAttribute('aria-label',b.title)}}
 function toggleTheme(){LS.setItem(K.theme,document.body.classList.contains('light')?'dark':'light');applyTheme()}
-function save(){persistDay()}
+function save(){persistDay();queueRemoteSave()}
 function saveCfg(){LS.setItem(K.cfg,JSON.stringify({sla:+document.getElementById('sla').value||15}))}
 try{const c=JSON.parse(LS.getItem(K.cfg)||'{}');if(c.sla)document.getElementById('sla').value=c.sla}catch(e){}
 function getField(obj, candidates){const entries=Object.entries(obj||{});for(const c of candidates){const cc=norm(c);const hit=entries.find(([k])=>norm(k)===cc||norm(k).includes(cc));if(hit&&String(hit[1]??'').trim())return hit[1]}return''}
@@ -821,7 +890,7 @@ function clearUploadedData(){
   if(!confirm(`Limpar somente os dados de ${new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR')}? O histórico dos outros dias será mantido.`))return;
   adu={};planning={};manual={};ops=[];backlog=[];
   history[activeDate]={adu:{},planning:{},manual:{},last:new Date().toISOString()};
-  persistDay();
+  persistDay();queueRemoteSave();
   const f=document.getElementById('planFiles');if(f)f.value='';
   const p=document.getElementById('paste');if(p)p.value='';
   const ps=document.getElementById('planStatus');if(ps)ps.textContent='Dados desta data foram limpos. Os outros dias continuam no histórico.';
@@ -841,7 +910,7 @@ function resetAll(){
     activeDate=today; LS.setItem(K.activeDate,activeDate);
     if(!history[activeDate]) history[activeDate]={adu:{},planning:{},manual:{},last:new Date().toISOString()};
     loadDay(activeDate);
-    render(); syncSupabase();
+    queueRemoteSave(); render(); syncSupabase();
     const ps=document.getElementById('planStatus'); if(ps)ps.textContent='Dia atual aberto. O histórico dos dias anteriores foi preservado.';
   }
 }
@@ -958,7 +1027,8 @@ function closeReport(){document.getElementById('reportModal').classList.remove('
 function renderReport(){const rows=merged(),done=rows.filter(x=>x.adu),ok=done.filter(x=>x.status==='CORRETA'),dv=done.filter(x=>x.status==='DIVERGÊNCIA'),wait=rows.filter(x=>x.status==='AGUARDANDO'),late=done.filter(x=>x.late);const k=[['Realizadas',done.length],['Corretas',ok.length],['Com divergência',dv.length],['Aguardando',wait.length],['Acima do tempo',late.length],['A mais',done.reduce((s,x)=>s+(x.adu?.amais||0),0)],['Faltantes',done.reduce((s,x)=>s+(x.adu?.faltantes||0),0)],['Backlog relacionado',done.reduce((s,x)=>s+x.backlog,0)]];document.getElementById('reportDate').textContent='Data operacional · '+new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR');document.getElementById('reportKpis').innerHTML=k.map(x=>`<div class="rKpi"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');const status=[['Corretas',ok.length],['Divergência',dv.length],['Aguardando',wait.length],['Acima do tempo',late.length]],mx=Math.max(1,...status.map(x=>x[1]));document.getElementById('statusBars').innerHTML=status.map(x=>`<div class="barRow"><span>${x[0]}</span><div class="bar"><i style="width:${x[1]/mx*100}%"></i></div><b>${x[1]}</b></div>`).join('');const cm={};done.forEach(x=>{const c=x.transportadora||'Não identificada';cm[c]=(cm[c]||0)+1});const carr=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,10),cmx=Math.max(1,...carr.map(x=>x[1]));document.getElementById('carrierBars').innerHTML=carr.map(x=>`<div class="barRow"><span title="${esc(x[0])}">${esc(x[0])}</span><div class="bar"><i style="width:${x[1]/cmx*100}%"></i></div><b>${x[1]}</b></div>`).join('')||'<div class="empty">Sem dados.</div>';const issues=done.filter(x=>x.div>0||x.late||x.backlog>0).sort((a,b)=>(b.div+b.backlog)-(a.div+a.backlog)).slice(0,20);document.getElementById('reportIssues').innerHTML=issues.length?`<table style="min-width:900px"><thead><tr><th>Rota</th><th>Transportadora</th><th>Rua</th><th>Vaga</th><th>Tempo</th><th>Divergência</th><th>Backlog</th></tr></thead><tbody>${issues.map(x=>`<tr><td><b>${esc(x.rota)}</b></td><td>${esc(x.transportadora||'—')}</td><td>${esc(x.rua||'—')}</td><td>${esc(x.vaga||'—')}</td><td>${x.tempo||0} min</td><td>${x.div}</td><td>${x.backlog}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhuma ocorrência crítica.</div>';const recHtml=(field)=>{const mp=recurrenceMap(done,field);const arr=Object.entries(mp).filter(x=>x[1]>1).sort((a,b)=>b[1]-a[1]);return arr.length?arr.map(([n,c])=>`<div class="barRow"><span title="${esc(n)}">${esc(n)}</span><div class="bar"><i style="width:${Math.min(100,c/Math.max(...arr.map(z=>z[1]))*100)}%"></i></div><b>${c}x</b></div>`).join(''):'<div class="empty">Sem reincidência no dia.</div>'};document.getElementById('logRecurrence').innerHTML=recHtml('rep');document.getElementById('driverRecurrence').innerHTML=recHtml('motorista')}
 function exportExcel(){const rows=merged(),done=rows.filter(x=>x.adu),dv=done.filter(x=>x.div>0),late=done.filter(x=>x.late),withBl=done.filter(x=>x.backlog>0);const wb=XLSX.utils.book_new();const resumo=[['RELATÓRIO OPERACIONAL DE ADUANA'],['Data',new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR')],['Última atualização',new Date().toLocaleString('pt-BR')],[],['INDICADOR','VALOR'],['Rotas na visão',rows.length],['Aduanas realizadas',done.length],['Corretas',done.filter(x=>x.status==='CORRETA').length],['Com divergência',dv.length],['Aguardando',rows.filter(x=>x.status==='AGUARDANDO').length],['Acima do tempo',late.length],['Unidades a mais',done.reduce((s,x)=>s+(x.adu?.amais||0),0)],['Pacotes faltantes',done.reduce((s,x)=>s+(x.adu?.faltantes||0),0)],['Avariadas',done.reduce((s,x)=>s+(x.adu?.avariadas||0),0)],['Rotas com backlog',withBl.length]];const ws0=XLSX.utils.aoa_to_sheet(resumo);ws0['!cols']=[{wch:30},{wch:22}];XLSX.utils.book_append_sheet(wb,ws0,'Dashboard');const logRec=recurrenceMap(rows,'rep'),drvRec=recurrenceMap(rows,'motorista');const data=rows.map(x=>({Status:x.status,Rota:x.rota,Aduana:x.adu?.id||'',Transportadora:x.transportadora||'',LOG:x.adu?.rep||'',Motorista:x.adu?.motorista||'',Placa:x.adu?.placa||'',Reincidencia_LOG:x.adu?.rep?(logRec[norm(x.adu.rep)]||0):0,Reincidencia_Motorista:x.adu?.motorista?(drvRec[norm(x.adu.motorista)]||0):0,Rua:x.rua||'',Vaga:x.vaga||'',Tempo_min:x.adu?.tempo??'',Corretas:x.adu?.corretas??'',A_mais:x.adu?.amais??'',Faltantes:x.adu?.faltantes??'',Avariadas:x.adu?.avariadas??'',Divergencia:x.adu?x.div:'',Backlog:x.backlog,Horario:x.adu?.hora||''}));const add=(name,arr)=>{const ws=XLSX.utils.json_to_sheet(arr);ws['!cols']=[{wch:14},{wch:14},{wch:16},{wch:24},{wch:22},{wch:24},{wch:14},{wch:16},{wch:20},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:20}];XLSX.utils.book_append_sheet(wb,ws,name)};add('Visao Operacional',data);add('Divergencias',data.filter(x=>x.Divergencia>0));add('Acima do Tempo',data.filter((x,i)=>{const r=rows[i];return r?.late}));add('Com Backlog',data.filter(x=>x.Backlog>0));const by={};done.forEach(x=>{const c=x.transportadora||'Não identificada';by[c]??={Transportadora:c,Realizadas:0,Corretas:0,Divergentes:0,A_mais:0,Faltantes:0,Avariadas:0,Backlog:0};const z=by[c];z.Realizadas++;z.Corretas+=x.status==='CORRETA';z.Divergentes+=x.status==='DIVERGÊNCIA';z.A_mais+=x.adu?.amais||0;z.Faltantes+=x.adu?.faltantes||0;z.Avariadas+=x.adu?.avariadas||0;z.Backlog+=x.backlog});add('Transportadoras',Object.values(by).sort((a,b)=>b.Realizadas-a.Realizadas));XLSX.writeFile(wb,`Relatorio_Aduana_${activeDate}.xlsx`)}
 function renderAlerts(){const rows=merged().filter(x=>x.div>0&&x.backlog>0).sort((a,b)=>b.backlog-a.backlog||b.div-a.div);document.getElementById('alerts').innerHTML=rows.length?rows.map(x=>`<div class="alert"><strong>🚨 ALERTA — ADUANA COM DIVERGÊNCIA + BACKLOG</strong><div class="meta"><b>Aduana:</b> ${esc(x.adu?.id||x.rota)} · <b>Rota:</b> ${esc(x.rota)} · <b>Rua:</b> ${esc(x.rua||'não localizada')} · <b>Vaga:</b> ${esc(x.vaga||'—')}<br><b>Divergência:</b> ${x.div} pacote(s) — A mais: ${x.adu.amais} · Faltantes: ${x.adu.faltantes} · Avariadas: ${x.adu.avariadas}<br><b>Backlog relacionado:</b> ${x.backlog} pacote(s) · <b>Tempo de Aduana:</b> ${x.adu.tempo} min ${x.late?'· ⚠️ ACIMA DO TEMPO':''}</div></div>`).join(''):`<div class="empty card">Nenhuma Aduana com divergência + Backlog neste momento.</div>`}
-applyTheme();ensureOperationalDay();const __df=document.getElementById('dateFilter');if(__df)__df.value=activeDate;render();syncSupabase();if(db){try{db.channel('aduana-live').on('postgres_changes',{event:'*',schema:'public',table:'operacoes_vagas'},syncSupabase).on('postgres_changes',{event:'*',schema:'public',table:'backlog_pacotes'},syncSupabase).subscribe()}catch(e){}}
+applyTheme();ensureOperationalDay();const __df=document.getElementById('dateFilter');if(__df)__df.value=activeDate;
+(async()=>{ await loadDayFromSupabase(activeDate); render(); await syncSupabase(); })();if(db){try{db.channel('aduana-live').on('postgres_changes',{event:'*',schema:'public',table:'operacoes_vagas'},syncSupabase).on('postgres_changes',{event:'*',schema:'public',table:'backlog_pacotes'},syncSupabase).subscribe()}catch(e){}}
 
 
 window.addEventListener('DOMContentLoaded', () => {

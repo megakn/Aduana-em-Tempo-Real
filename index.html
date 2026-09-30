@@ -1391,4 +1391,26 @@ function printExecutiveReport(){
 }
 </script>
 
+
+<script id="closeReportFix">
+function closeReport(){
+  const modal=document.getElementById('reportModal');
+  if(!modal) return;
+  modal.classList.remove('open','exec-view','dashboard-fullscreen');
+  document.body.style.overflow='';
+  const btn=document.getElementById('dashboardInteractiveBtn');
+  if(btn){
+    btn.innerHTML='◉ Dashboard interativo';
+    btn.title='Abrir visão executiva';
+    btn.classList.remove('outputActive');
+  }
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    const modal=document.getElementById('reportModal');
+    if(modal && modal.classList.contains('open')) closeReport();
+  }
+});
+</script>
+
 </body></html>

@@ -168,6 +168,7 @@ input[type=file]::file-selector-button:hover{ background:var(--btn-hover); borde
 .kpi.led-on{ border-color:var(--accent); transform:translateY(-2px);
   box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 14px 32px -14px color-mix(in srgb, var(--accent) 70%, transparent); }
 .kpi.led-on b{ color:var(--accent); }
+.kpi small{ display:block; margin-top:5px; font-family:'Geist Mono', monospace; font-size:10px; color:var(--mid); letter-spacing:.02em; }
 .kpi.led-on span{ color:var(--hi); }
 
 /* ---------- layout principal + painel lateral recolhível ---------- */
@@ -409,6 +410,45 @@ body.is-loading #kpis .kpi b::after{ content:""; position:absolute; inset:0; bor
  #executiveDashboardView .execBar{margin:5px 0!important}
  #executiveDashboardView .execTable th,#executiveDashboardView .execTable td{padding:5px!important}
 }
+/* ===== Abas Aduana / Auditoria de Carrinho ===== */
+.viewTabs{ display:inline-flex; gap:4px; padding:4px; margin:0 1px 16px; border-radius:999px; background:var(--chip); border:1px solid var(--line); }
+.viewTabs button{ border:0; background:transparent; color:var(--mid); font-weight:600; font-size:13px; padding:8px 16px; border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:background .15s,color .15s; }
+.viewTabs button:hover{ color:var(--hi); }
+.viewTabs button.on{ background:var(--kn); color:#fff; }
+.viewTabs .tabCount{ font-family:'Geist Mono', monospace; font-size:10.5px; padding:1px 7px; border-radius:999px; background:color-mix(in srgb, currentColor 16%, transparent); }
+body.view-carrinho #kpis, body.view-carrinho .aduanaMain, body.view-carrinho #flowAduana{ display:none !important; }
+body:not(.view-carrinho) #viewCarrinho, body:not(.view-carrinho) #flowCarrinho{ display:none !important; }
+#cartKpis{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+@media (min-width:640px){ #cartKpis{ grid-template-columns:repeat(5,minmax(0,1fr)); } }
+@media (min-width:1280px){ #cartKpis{ grid-template-columns:repeat(10,minmax(0,1fr)); } }
+#cartKpis .kpi{ cursor:pointer; }
+.pill.cancel{ background:color-mix(in srgb, var(--mid) 30%, transparent); border:1px solid color-mix(in srgb, var(--mid) 55%, transparent); }
+body.light .pill.cancel{ background:#7a8596; border-color:transparent; }
+.tablewrap .cartTable th, .tablewrap .cartTable td{ width:auto; }
+.tablewrap .cartTable td{ font-family:inherit; }
+.tablewrap .cartTable td:nth-child(n+4):nth-child(-n+10){ font-family:'Geist Mono', monospace; font-variant-numeric:tabular-nums; }
+.cartTable td:nth-child(3){ text-align:left; }
+.cartTable thead tr.grp th{ top:0; height:24px; padding:4px; font-size:9.5px; letter-spacing:.1em; }
+.cartTable thead tr:nth-child(2) th{ top:24px; }
+.cartTable th.gPaste{ color:var(--hi); border-bottom:2px solid var(--kn); }
+.cartTable th.gSrc{ color:var(--hi); border-bottom:2px solid var(--violet); }
+.cartTable th.src{ color:color-mix(in srgb, var(--violet) 70%, var(--mid)); }
+.cartTable td.src{ background:color-mix(in srgb, var(--violet) 5%, transparent); }
+.cartTable td.src:nth-child(11){ border-left:1px solid var(--line); }
+.cartTable td .tiny{ font-size:9.5px; color:var(--mid); line-height:1.2; }
+.cartTable tr.nomatch td.src{ color:var(--mid); }
+.cartTable tr.cancelled td{ opacity:.55; }
+.cartGrid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:start; }
+@media (max-width:1100px){ .cartGrid{ grid-template-columns:1fr; } }
+.cartList{ max-height:420px; overflow:auto; }
+.cartRow{ display:grid; grid-template-columns:minmax(0,1fr) 62px 62px 62px; gap:6px; align-items:center; padding:9px 14px; border-bottom:1px solid var(--row-line); font-size:12px; }
+.cartRow.h{ font-family:'Geist Mono', monospace; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--mid); background:var(--thead); position:sticky; top:0; }
+.cartRow span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cartRow span:not(:first-child){ text-align:center; font-family:'Geist Mono', monospace; }
+.cartRow.h span{ font-family:inherit; }
+.cartRow .hot{ color:var(--red); font-weight:700; }
+.cartPanelTitle{ padding:12px 14px; font-weight:600; font-size:13px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+
 </style>
 
 </head>
@@ -444,17 +484,20 @@ body.is-loading #kpis .kpi b::after{ content:""; position:absolute; inset:0; bor
   <section class="mb-5 flex flex-wrap items-end justify-between gap-4 px-1" data-in>
     <div>
       <p class="eyebrow flex items-center gap-2"><span class="live-dot"></span>KN · Controle operacional · ao vivo</p>
-      <h1 class="mt-2 text-[30px] font-bold leading-none tracking-[-0.03em] sm:text-[38px]">Aduana em Tempo Real</h1>
+      <h1 class="mt-2 text-[30px] font-bold leading-none tracking-[-0.03em] sm:text-[38px]" id="pageTitle">Aduana em Tempo Real</h1>
     </div>
-    <div class="flex flex-wrap items-center gap-1.5 text-[11.5px] text-[var(--mid)]" aria-label="Fluxo de atuação">
+    <div class="flex flex-wrap items-center gap-1.5 text-[11.5px] text-[var(--mid)]" id="flowCarrinho" aria-label="Fluxo do carrinho"><span class="badge">Carrinho</span><span aria-hidden="true">→</span><span class="badge">Resultado</span><span aria-hidden="true">→</span><span class="badge">Divergência</span><span aria-hidden="true">→</span><span class="badge">Auditor</span><span aria-hidden="true">→</span><span class="badge !text-[var(--kn)]">Ação</span></div>
+    <div class="flex flex-wrap items-center gap-1.5 text-[11.5px] text-[var(--mid)]" id="flowAduana" aria-label="Fluxo de atuação">
       <span class="badge">Aduana</span><span aria-hidden="true">→</span><span class="badge">Divergência</span><span aria-hidden="true">→</span><span class="badge">Rua/Vaga</span><span aria-hidden="true">→</span><span class="badge">Backlog</span><span aria-hidden="true">→</span><span class="badge">Alerta</span><span aria-hidden="true">→</span><span class="badge !text-[var(--kn)]">Ação</span>
     </div>
   </section>
 
+  <nav class="viewTabs" aria-label="Escolher painel"><button type="button" id="tabAduana" class="on" onclick="setView('aduana')">Aduana</button><button type="button" id="tabCarrinho" onclick="setView('carrinho')">Auditoria de Carrinho <span class="tabCount" id="tabCartCount">0</span></button></nav>
+
   <!-- indicadores -->
   <div class="grid mb-4" id="kpis" data-in></div>
 
-  <div class="main">
+  <div class="main aduanaMain">
     <!-- painel lateral -->
     <section data-in>
       <button type="button" id="sidebarToggle" class="sidebarToggle" onclick="toggleSidebar()">◀ Guardar painel</button>
@@ -558,6 +601,78 @@ Concluída"></textarea>
         </div>
       </div>
     </section>
+  </div>
+  <!-- ================= AUDITORIA DE CARRINHO ================= -->
+  <div id="viewCarrinho">
+    <div class="grid mb-4" id="cartKpis"></div>
+    <div class="main cartMain">
+      <section>
+        <button type="button" id="cartSidebarToggle" class="sidebarToggle" onclick="cartToggleSidebar()">◀ Guardar painel</button>
+        <div class="sidebarContent">
+        <div class="card">
+          <div class="head"><h2>Colar Auditoria de Carrinho</h2><span class="badge" id="cartCount">0 auditorias</span></div>
+          <div class="body">
+            <textarea id="cartPaste" placeholder="Cole aqui exatamente o conteúdo copiado da tela de Auditoria de Carrinho...
+
+Ex.:
+F7_AM1
+ROTA COMPLETA
+Aline Rodrigues Sousa Dos Santos
+07:50 | 30/set.
+18 min.
+62 corretos | 0 a mais
+3 faltantes | 0 avariados
+Concluída"></textarea>
+            <div class="actions"><button class="primary" onclick="cartProcessPaste()">Atualizar Carrinhos</button><button class="ghost" onclick="document.getElementById('cartPaste').value=''">Limpar caixa</button></div>
+            <div class="statusline" id="cartPasteStatus">A nova colagem atualiza as auditorias existentes (mesmo carrinho + auditor + horário de início) e inclui as novas, sem duplicar.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="head"><h2>Configuração do Carrinho</h2></div>
+          <div class="body">
+            <div class="cfg"><label for="cartSla">Tempo esperado da auditoria (min)</label><input id="cartSla" type="number" min="1" value="15" onchange="cartSaveCfg();cartRender()"></div>
+            <div class="tiny" style="margin-top:8px;line-height:1.5">Canceladas e em andamento não entram em Corretas, Divergência nem Tempo. A data segue o seletor de data do painel.</div>
+            <div class="actions"><button class="primary" onclick="cartExportExcel()">Exportar Excel</button><button class="danger" onclick="cartClearDay()">Limpar carrinhos do dia</button></div>
+          </div>
+        </div>
+        </div>
+      </section>
+      <section>
+        <div class="card solid">
+          <div class="head">
+            <h2>Visão de Carrinhos</h2>
+            <div class="flex items-center gap-3" style="flex-wrap:wrap;justify-content:flex-end">
+              <span class="tiny mono" id="cartSummary"></span>
+              <button type="button" class="ghost" onclick="cartExportExcel()">📥 Exportar Excel</button>
+              <button type="button" id="cartFilterBtn" class="filterBtn" onclick="cartToggleFilters()" aria-expanded="false">⚙ Filtros</button>
+            </div>
+          </div>
+          <div class="filters recolhido" id="cartFilterPanel">
+            <input id="cartSearch" placeholder="Buscar carrinho, auditor, transportadora, rua..." oninput="cartRender()">
+            <select id="cartCycle" onchange="cartRender()"><option value="">Todos os ciclos</option></select>
+            <select id="cartTipo" onchange="cartRender()"><option value="">Rota + Numérico</option><option value="Rota">Carrinho de rota</option><option value="Numérico">Carrinho numérico</option></select>
+            <select id="cartAuditor" onchange="cartRender()"><option value="">Todos os auditores</option></select>
+            <select id="cartStatus" onchange="cartRender()"><option value="">Todos os status</option><option value="DIVERGÊNCIA">Com divergência</option><option value="CORRETA">Corretas</option><option value="EM ANDAMENTO">Em andamento</option><option value="CANCELADA">Canceladas</option><option value="AMAIS">A mais</option><option value="FALTANTE">Faltante</option><option value="AVARIA">Avariados</option><option value="RECONT">Recontados</option></select>
+            <select id="cartTime" onchange="cartRender()"><option value="">Todos os tempos</option><option value="ABAIXO">Abaixo do tempo</option><option value="ACIMA">Acima do tempo</option></select>
+            <button type="button" onclick="cartClearFilters()">Limpar filtros</button>
+          </div>
+          <div class="statusline" id="cartMatchStatus" style="margin:0;padding:8px 16px;border-bottom:1px solid var(--line)"></div>
+          <div class="tablewrap">
+            <table class="cartTable"><colgroup><col style="width:8%"><col style="width:6.5%"><col style="width:13%"><col style="width:4.5%"><col style="width:4%"><col style="width:5.5%"><col style="width:4.5%"><col style="width:5.5%"><col style="width:5.5%"><col style="width:5%"><col style="width:7%"><col style="width:8.5%"><col style="width:4.5%"><col style="width:4.5%"><col style="width:4.5%"><col style="width:5.5%"><col style="width:4.5%"></colgroup><thead><tr class="grp"><th colspan="10" class="gPaste">Da colagem</th><th colspan="7" class="gSrc">Das planilhas / Aduana / Layout</th></tr><tr><th>Status</th><th>Carrinho</th><th>Auditor</th><th>Início</th><th>Min</th><th>Corretos</th><th>A mais</th><th>Faltantes</th><th>Avariados</th><th>Diverg.</th><th class="src">ID planejado</th><th class="src">Transportadora</th><th class="src">Rua</th><th class="src">Vaga</th><th class="src">Veículo</th><th class="src">Aduana</th><th class="src">Backlog</th></tr></thead><tbody id="cartTbody"></tbody></table>
+          </div>
+        </div>
+
+        <div class="sectiontitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          Prioridade de atuação <span class="tiny">Divergências · Auditores · Em andamento</span>
+        </div>
+        <div class="cartGrid">
+          <div class="card solid"><div class="cartPanelTitle">Maiores divergências <span class="tiny">pacotes</span></div><div class="cartList" id="cartTopDiv"></div></div>
+          <div class="card solid"><div class="cartPanelTitle">Auditores <span class="tiny">no filtro atual</span></div><div class="cartList" id="cartAuditors"></div></div>
+          <div class="card solid"><div class="cartPanelTitle">Em andamento <span class="tiny">tempo na colagem</span></div><div class="cartList" id="cartOpen"></div></div>
+        </div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -1063,12 +1178,14 @@ function merged(){ return mergedReal(); }
 function mergedReal(){const map=new Map();for(const p of Object.values(planning)){map.set(routeKey(p.rota),{rota:p.rota,plan:p})}for(const a of Object.values(adu)){const k=routeKey(a.rota);map.set(k,{...(map.get(k)||{rota:a.rota}),adu:a})}return [...map.values()].map(x=>{const a=x.adu,p=x.plan||{},o=opFor(x.rota),bl=blFor(x.rota);const div=a?(a.amais+a.faltantes+a.avariadas):0;const estado=norm(a?.estado||'');const aguardando=!!a&&(/AGUARD|PENDENTE|FILA|ESPERA/.test(estado));let status=aguardando?'AGUARDANDO':a?(div>0?'DIVERGÊNCIA':'CORRETA'):'PLANEJADA';const mk=routeKey(x.rota),man=manual[mk]||{};return{...x,status,div,backlog:bl.length,ciclo:p.ciclo||detectCycle({},x.rota),transportadora:carrierCanonical(a?.transportadora||o?.transportadora||p.transportadora||''),rua:man.rua||ruaByCarrier(a?.transportadora||o?.transportadora||p.transportadora||'')||o?.rua||p.rua||'',vaga:man.vaga||o?.vaga||'',tempo:a?.tempo||0,late:a&&!aguardando&&a.tempo>(+document.getElementById('sla').value||15)}})}
 async function syncSupabase(){if(!db){document.getElementById('syncStatus').textContent='Supabase indisponível neste navegador.';return}document.getElementById('syncStatus').textContent='Atualizando Layout e Backlog...';try{const [or,br]=await Promise.all([db.from('operacoes_vagas').select('*').eq('data_operacao',activeDate).neq('status','FINALIZADA'),db.from('backlog_pacotes').select('*').eq('data_operacao',activeDate)]);if(!or.error)ops=or.data||[];if(!br.error)backlog=br.data||[];document.getElementById('syncStatus').textContent=`Layout: ${ops.length} operações ativas · Backlog: ${backlog.length} pacotes do dia.`;render()}catch(e){document.getElementById('syncStatus').textContent='Não foi possível consultar Layout/Backlog agora. O painel continua funcionando com os dados locais.'}}
 function updateFilterOptions(rows){const cf=document.getElementById('cycleFilter'),tf=document.getElementById('carrierFilter'),rf=document.getElementById('streetFilter'),lf=document.getElementById('logFilter'),df=document.getElementById('driverFilter');if(!cf||!tf||!rf||!lf||!df)return;const cv=cf.value,tv=tf.value,rv=rf.value,lv=lf.value,dv=df.value;const cycles=[...new Set(rows.map(x=>x.ciclo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));const carriers=[...new Set(rows.map(x=>carrierCanonical(x.transportadora)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));const streets=[...new Set(rows.map(x=>x.rua).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));const logs=[...new Set(rows.map(x=>String(x.adu?.rep||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));const drivers=[...new Set(rows.map(x=>String(x.adu?.motorista||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));cf.innerHTML='<option value="">Todos os ciclos</option>'+cycles.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');tf.innerHTML='<option value="">Todas as transportadoras</option>'+carriers.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');rf.innerHTML='<option value="">Todas as ruas</option>'+streets.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');lf.innerHTML='<option value="">Todos os LOGs</option>'+logs.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');df.innerHTML='<option value="">Todos os motoristas</option>'+drivers.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if(cycles.includes(cv))cf.value=cv;if(carriers.includes(tv))tf.value=tv;if(streets.includes(rv))rf.value=rv;if(logs.includes(lv))lf.value=lv;if(drivers.includes(dv))df.value=dv}
-function render(){const de=document.getElementById('opDate');if(de)de.textContent='Data · '+new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR');const m=merged(), a=m.filter(x=>x.adu), div=a.filter(x=>x.div>0), sla=+document.getElementById('sla').value||15;updateFilterOptions(m);const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.filter(x=>x.status==='CORRETA').length,'green'],['Com divergência',div.length,'red'],['Aguardando',m.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['Abaixo do tempo',a.filter(x=>x.tempo<=sla).length,'blue'],['A mais',a.filter(x=>(Number(x.adu?.amais)||0)>0).length,'violet'],['Pacotes faltantes',a.reduce((s,x)=>s+(Number(x.adu?.faltantes)||0),0),'orange'],['Avariadas',a.reduce((s,x)=>s+(Number(x.adu?.avariadas)||0),0),'indigo'],['Com Backlog',m.filter(x=>x.div>0&&x.backlog>0).length,'turquoise']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');document.getElementById('planCount').textContent=`${Object.keys(planning).length} rotas`;document.getElementById('aduCount').textContent=`${a.length} registros`;document.getElementById('summary').textContent=`${m.length} rotas na visão consolidada`;const last=history[activeDate]?.last||LS.getItem(K.last);document.getElementById('lastUpdate').textContent=last?'Última atualização '+new Date(last).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Aguardando atualização';renderTable();renderAlerts()}
+function aduanasAMais(rows){return new Set(rows.filter(x=>x.adu&&(Number(x.adu.amais)||0)>0).map(x=>norm(x.adu.id||x.rota))).size}
+function pacotesAMais(rows){return rows.reduce((s,x)=>s+(Number(x.adu?.amais)||0),0)}
+function render(){const de=document.getElementById('opDate');if(de)de.textContent='Data · '+new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR');const m=merged(), a=m.filter(x=>x.adu), div=a.filter(x=>x.div>0), sla=+document.getElementById('sla').value||15;updateFilterOptions(m);const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.filter(x=>x.status==='CORRETA').length,'green'],['Com divergência',div.length,'red'],['Aguardando',m.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['Abaixo do tempo',a.filter(x=>x.tempo<=sla).length,'blue'],['A mais',aduanasAMais(a),'violet',pacotesAMais(a)+' pacote(s)'],['Pacotes faltantes',a.reduce((s,x)=>s+(Number(x.adu?.faltantes)||0),0),'orange'],['Avariadas',a.reduce((s,x)=>s+(Number(x.adu?.avariadas)||0),0),'indigo'],['Com Backlog',m.filter(x=>x.div>0&&x.backlog>0).length,'turquoise']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}" data-v="${c[1]}"><span>${c[0]}</span><b>${c[1]}</b>${c[3]?`<small>${c[3]}</small>`:''}</div>`).join('');document.getElementById('planCount').textContent=`${Object.keys(planning).length} rotas`;document.getElementById('aduCount').textContent=`${a.length} registros`;document.getElementById('summary').textContent=`${m.length} rotas na visão consolidada`;const last=history[activeDate]?.last||LS.getItem(K.last);document.getElementById('lastUpdate').textContent=last?'Última atualização '+new Date(last).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Aguardando atualização';renderTable();renderAlerts()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function limparFiltros(){const s=document.getElementById('search'),cy=document.getElementById('cycleFilter'),ca=document.getElementById('carrierFilter'),ru=document.getElementById('streetFilter'),lf=document.getElementById('logFilter'),df=document.getElementById('driverFilter'),ve=document.getElementById('vehicleFilter'),st=document.getElementById('statusFilter'),tm=document.getElementById('timeFilter'),bl=document.getElementById('onlyBacklog');if(s)s.value='';if(cy)cy.value='';if(ca)ca.value='';if(ru)ru.value='';if(lf)lf.value='';if(df)df.value='';if(ve)ve.value='';if(st)st.value='';if(tm)tm.value='';if(bl)bl.checked=false;renderTable()}
 function getFilteredRows(){const q=norm(document.getElementById('search')?.value||''),cy=document.getElementById('cycleFilter')?.value||'',ca=document.getElementById('carrierFilter')?.value||'',rf=document.getElementById('streetFilter')?.value||'',lf=document.getElementById('logFilter')?.value||'',df=document.getElementById('driverFilter')?.value||'',ve=document.getElementById('vehicleFilter')?.value||'',sf=document.getElementById('statusFilter')?.value||'',tf=document.getElementById('timeFilter')?.value||'',ob=document.getElementById('onlyBacklog')?.checked||false,sla=+document.getElementById('sla').value||15;let rows=merged().filter(x=>{const tipo=norm(x.rota).startsWith('V')?'VUC':'GM',am=x.adu?.amais||0,fa=x.adu?.faltantes||0,av=x.adu?.avariadas||0;const aduOk=!sf||(sf==='AMAIS'&&am>0)||(sf==='FALTANTE'&&fa>0)||(sf==='AVARIA'&&av>0)||(!['AMAIS','FALTANTE','AVARIA'].includes(sf)&&x.status===sf);const tempoOk=!tf||(x.adu&&((tf==='ACIMA'&&Number(x.tempo)>sla)||(tf==='ABAIXO'&&Number(x.tempo)<=sla)));return(!cy||x.ciclo===cy)&&(!ca||x.transportadora===ca)&&(!rf||x.rua===rf)&&(!lf||String(x.adu?.rep||'')===lf)&&(!df||String(x.adu?.motorista||'')===df)&&(!ve||tipo===ve)&&aduOk&&tempoOk&&(!ob||x.backlog>0)});if(q)rows=rows.filter(x=>norm([x.rota,x.adu?.id,x.transportadora,x.adu?.rep,x.adu?.motorista,x.adu?.placa,x.rua,x.vaga].join(' ')).includes(q));return rows}
-function renderFilteredKpis(rows){const a=rows.filter(x=>x.adu),div=a.filter(x=>x.div>0),sla=+document.getElementById('sla').value||15;const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.filter(x=>x.status==='CORRETA').length,'green'],['Com divergência',div.length,'red'],['Aguardando',rows.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['Abaixo do tempo',a.filter(x=>x.tempo<=sla).length,'blue'],['A mais',a.filter(x=>(Number(x.adu?.amais)||0)>0).length,'violet'],['Pacotes faltantes',a.reduce((s,x)=>s+(x.adu?.faltantes||0),0),'orange'],['Avariadas',a.reduce((s,x)=>s+(x.adu?.avariadas||0),0),'indigo'],['Com Backlog',rows.filter(x=>x.div>0&&x.backlog>0).length,'turquoise']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}"><span>${c[0]}</span><b>${c[1]}</b></div>`).join('');document.getElementById('summary').textContent=`${rows.length} rotas no filtro atual`}
+function renderFilteredKpis(rows){const a=rows.filter(x=>x.adu),div=a.filter(x=>x.div>0),sla=+document.getElementById('sla').value||15;const cards=[['Realizadas',a.length,'cyan'],['Corretas',a.filter(x=>x.status==='CORRETA').length,'green'],['Com divergência',div.length,'red'],['Aguardando',rows.filter(x=>x.status==='AGUARDANDO').length,'yellow'],['Acima do tempo',a.filter(x=>x.tempo>sla).length,'red'],['Abaixo do tempo',a.filter(x=>x.tempo<=sla).length,'blue'],['A mais',aduanasAMais(a),'violet',pacotesAMais(a)+' pacote(s)'],['Pacotes faltantes',a.reduce((s,x)=>s+(x.adu?.faltantes||0),0),'orange'],['Avariadas',a.reduce((s,x)=>s+(x.adu?.avariadas||0),0),'indigo'],['Com Backlog',rows.filter(x=>x.div>0&&x.backlog>0).length,'turquoise']];document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[2]}" data-v="${c[1]}"><span>${c[0]}</span><b>${c[1]}</b>${c[3]?`<small>${c[3]}</small>`:''}</div>`).join('');document.getElementById('summary').textContent=`${rows.length} rotas no filtro atual`}
 function updateCardLeds(){
   const cards=[...document.querySelectorAll('#kpis .kpi')];
   cards.forEach(c=>c.classList.remove('led-on'));
@@ -1243,21 +1360,34 @@ window.addEventListener('DOMContentLoaded', () => {
   // números dos cards sobem contando quando mudam
   const prevKpi = {};
   let kpiFirst = true;
+  const runningKpi = {};
   function animateKpis(){
     document.querySelectorAll('#kpis .kpi').forEach(card => {
       const label = card.querySelector('span')?.textContent || '';
       const b = card.querySelector('b'); if(!b) return;
-      const to = Number(b.textContent); if(!Number.isFinite(to)) return;
+      const to = Number(card.dataset.v ?? b.textContent); if(!Number.isFinite(to)) return;
       const from = prevKpi[label] ?? 0; prevKpi[label] = to;
-      if(!can() || from === to || document.body.classList.contains('is-loading')) return;
+      try{ runningKpi[label]?.stop?.(); }catch(e){}
+      runningKpi[label] = null;
+      b.textContent = to;
+      if(!can() || from === to || document.hidden || document.body.classList.contains('is-loading')) return;
       b.textContent = from;
-      MO.animate(from, to, { duration:.7, ease:EASE, onUpdate:v => { b.textContent = Math.round(v); }, onComplete:() => { b.textContent = to; } });
+      try{
+        runningKpi[label] = MO.animate(from, to, { duration:.7, ease:EASE, onUpdate:v => { b.textContent = Math.round(v); }, onComplete:() => { b.textContent = to; } });
+      }catch(e){ b.textContent = to; }
+      // garantia: o card sempre termina no valor real, mesmo se a animação travar
+      setTimeout(() => { if(b.isConnected) b.textContent = card.dataset.v ?? to; }, 900);
     });
     if(kpiFirst && !document.body.classList.contains('is-loading')){
       kpiFirst = false;
       anim(document.querySelectorAll('#kpis .kpi'), { opacity:[0,1], y:[12,0] }, { duration:.5, delay:MO.stagger(.04), ease:EASE });
     }
   }
+  // ao voltar para a aba, corrige qualquer número que tenha ficado no meio da animação
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden) return;
+    document.querySelectorAll('#kpis .kpi').forEach(c => { const b = c.querySelector('b'); if(b && c.dataset.v != null) b.textContent = c.dataset.v; });
+  });
   if(typeof renderFilteredKpis === 'function'){
     const orig = renderFilteredKpis;
     renderFilteredKpis = function(rows){ const r = orig.apply(this, arguments); animateKpis(); return r; };
@@ -1411,6 +1541,256 @@ document.addEventListener('keydown',function(e){
     if(modal && modal.classList.contains('open')) closeReport();
   }
 });
+</script>
+
+<script>
+/* =========================================================
+   AUDITORIA DE CARRINHO
+   - Mesmo processo da Aduana: copiar a tela e colar.
+   - Fica guardado junto com o dia (histórico local + Supabase),
+     dentro do mesmo registro diário, sem precisar de tabela nova.
+   ========================================================= */
+const CART_KEY='__carrinho__', CART_TAB='aduana_tab_v1', CART_CFG='carrinho_cfg_v1';
+function cartStore(){ if(!manual[CART_KEY]||typeof manual[CART_KEY]!=='object'||Array.isArray(manual[CART_KEY])) manual[CART_KEY]={}; return manual[CART_KEY]; }
+function cartSla(){ return +document.getElementById('cartSla')?.value||15; }
+function cartSaveCfg(){ try{ LS.setItem(CART_CFG,JSON.stringify({sla:cartSla()})); }catch(e){} }
+try{ const c=JSON.parse(LS.getItem(CART_CFG)||'{}'); if(c.sla) document.getElementById('cartSla').value=c.sla; }catch(e){}
+
+function parseCarrinho(text){
+  const L=String(text||'').split(/\r?\n/).map(s=>s.replace(/\t+/g,' ').trim()).filter(Boolean);
+  const timeIdx=[]; L.forEach((s,i)=>{ if(/^\d{1,2}:\d{2}\s*\|/.test(s)) timeIdx.push(i); });
+  const out=[];
+  timeIdx.forEach((t,n)=>{
+    if(t<3) return;
+    const id=L[t-3], tipo=L[t-2], auditor=L[t-1];
+    if(!id||/rota e tipo|auditor|dura[cç][aã]o/i.test(id)) return;
+    if(/^\d+\s*min/i.test(id)||/corret|faltant/i.test(id)) return;
+    const end=n+1<timeIdx.length?timeIdx[n+1]-3:L.length;
+    const block=L.slice(t+1,Math.max(t+1,end));
+    const [hora='',dataTxt='']=L[t].split('|').map(x=>x.trim());
+    const num=(s,rx)=>+((s||'').match(rx)?.[1]||0);
+    const tLine=block.find(x=>/^\d+\s*min/i.test(x))||'';
+    const u1=block.find(x=>/corret/i.test(x))||'';
+    const u2=block.find(x=>/faltant|avariad/i.test(x))||'';
+    const estado=block.find(x=>/conclu|andamento|cancel|pendente|aguard|pausad|iniciad/i.test(x))||'';
+    out.push({
+      carrinho:String(id).toUpperCase().replace(/\s+/g,''), tipo, auditor, hora, dataTxt,
+      tempo:num(tLine,/(\d+)/), corretos:num(u1,/(\d+)\s*corret/i), amais:num(u1,/(\d+)\s*a\s*mais/i),
+      faltantes:num(u2,/(\d+)\s*faltant/i), avariados:num(u2,/(\d+)\s*avariad/i),
+      estado, updatedAt:new Date().toISOString()
+    });
+  });
+  return out;
+}
+const cartKeyOf=r=>`${norm(r.carrinho)}|${r.hora}|${norm(r.auditor)}`;
+
+function cartProcessPaste(){
+  const txt=document.getElementById('cartPaste').value;
+  if(!txt.trim()){ alert('Cole primeiro os dados copiados da tela de Auditoria de Carrinho.'); return; }
+  const rows=parseCarrinho(txt);
+  if(!rows.length){ document.getElementById('cartPasteStatus').textContent='Nenhuma auditoria reconhecida. Confira se copiou a lista completa (carrinho, tipo, auditor, horário, duração, resultados e estado).'; return; }
+  const s=cartStore(); let novos=0, atual=0; const seen=new Set();
+  rows.forEach(r=>{ const k=cartKeyOf(r); if(seen.has(k)) return; seen.add(k); if(s[k]){ s[k]={...s[k],...r}; atual++; } else { s[k]=r; novos++; } });
+  save();
+  document.getElementById('cartPasteStatus').textContent=`Atualização concluída: ${seen.size} auditorias reconhecidas · ${novos} novas · ${atual} atualizadas · sem repetição.`;
+  document.getElementById('cartPaste').value='';
+  cartRender();
+}
+function cartClearDay(){
+  if(!confirm(`Limpar as auditorias de carrinho de ${new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR')}? A Aduana não é afetada.`)) return;
+  manual[CART_KEY]={}; save(); cartRender();
+  document.getElementById('cartPasteStatus').textContent='Auditorias de carrinho desta data foram limpas.';
+}
+
+// ---- cruzamento com o que já foi carregado (planejamento, Aduana, Layout, Backlog) ----
+function cartLookup(){
+  const m={}; try{ merged().forEach(x=>{ m[routeKey(x.rota)]=x; }); }catch(e){}
+  // carrinho numérico (ex.: 739) -> procura um ID planejado terminado em _739 (ex.: PM1_739)
+  const byNum={};
+  Object.values(planning||{}).forEach(p=>{ const n=String(p.plannedId||'').match(/(?:^|[_\s-])0*(\d+)\s*$/); if(n){ (byNum[n[1]]=byNum[n[1]]||[]).push(p); } });
+  return {m,byNum};
+}
+function cartMatch(car,L){
+  const k=routeKey(car);
+  if(L.m[k]) return {x:L.m[k],via:'rota'};
+  const n=String(car).match(/^0*(\d+)$/);
+  if(n&&L.byNum[n[1]]){ const c=L.byNum[n[1]]; if(c.length===1) return {x:L.m[routeKey(c[0].rota)]||{rota:c[0].rota,plan:c[0]},via:'id'}; return {x:null,via:'ambiguo',opcoes:c.map(p=>p.rota)}; }
+  return {x:null,via:''};
+}
+function cartRows(){
+  const s=cartStore(), sla=cartSla(), L=cartLookup();
+  const list=Object.entries(s).map(([k,r])=>({...r,key:k}));
+  const done=x=>/CONCLU/.test(norm(x.estado));
+  const cnt={}; list.filter(done).forEach(r=>{ const c=norm(r.carrinho); cnt[c]=(cnt[c]||0)+1; });
+  return list.map(r=>{
+    const e=norm(r.estado), div=(+r.amais||0)+(+r.faltantes||0)+(+r.avariados||0);
+    const status=/CANCEL/.test(e)?'CANCELADA':(/CONCLU/.test(e)?(div>0?'DIVERGÊNCIA':'CORRETA'):'EM ANDAMENTO');
+    const isRoute=/_/.test(r.carrinho);
+    const mt=cartMatch(r.carrinho,L), x=mt.x||{}, p=x.plan||{}, a=x.adu||null;
+    const ciclo=detectCycle({},r.carrinho)||x.ciclo||p.ciclo||(isRoute?'':'NUMÉRICO');
+    const fin=status==='CORRETA'||status==='DIVERGÊNCIA';
+    const veic=p.veiculo||(x.rota?(norm(x.rota).startsWith('V')?'VUC':'GM'):'');
+    return {...r,status,div,ciclo,tipoCar:isRoute?'Rota':'Numérico',fin,late:fin&&(+r.tempo||0)>sla,recont:cnt[norm(r.carrinho)]||0,
+      achado:!!mt.x, via:mt.via, opcoes:mt.opcoes||[],
+      rotaPlan:mt.via==='id'?x.rota:'', plannedId:p.plannedId||'', veiculo:veic, detalhe:p.detalheRoteiro||'',
+      transportadora:x.transportadora||'', rua:x.rua||'', vaga:x.vaga||'', backlog:x.backlog||0,
+      aduStatus:a?x.status:'', aduId:a?.id||'', aduDiv:a?x.div:0, motorista:a?.motorista||'', log:a?.rep||''};
+  });
+}
+function cartFiltered(all){
+  const v=id=>document.getElementById(id)?.value||'';
+  const q=norm(v('cartSearch')), cy=v('cartCycle'), tp=v('cartTipo'), au=v('cartAuditor'), st=v('cartStatus'), tm=v('cartTime'), sla=cartSla();
+  return all.filter(x=>{
+    const stOk=!st||(st==='AMAIS'&&x.fin&&x.amais>0)||(st==='FALTANTE'&&x.fin&&x.faltantes>0)||(st==='AVARIA'&&x.fin&&x.avariados>0)||(st==='RECONT'&&x.recont>1)||(!['AMAIS','FALTANTE','AVARIA','RECONT'].includes(st)&&x.status===st);
+    const tmOk=!tm||(x.fin&&((tm==='ACIMA'&&x.tempo>sla)||(tm==='ABAIXO'&&x.tempo<=sla)));
+    const qOk=!q||norm([x.carrinho,x.auditor,x.tipo,x.transportadora,x.rua,x.vaga,x.ciclo,x.status,x.plannedId,x.rotaPlan,x.aduId,x.motorista,x.log].join(' ')).includes(q);
+    return (!cy||x.ciclo===cy)&&(!tp||x.tipoCar===tp)&&(!au||norm(x.auditor)===au)&&stOk&&tmOk&&qOk;
+  });
+}
+function cartFillSelect(id,values,first){
+  const el=document.getElementById(id); if(!el) return; const cur=el.value;
+  el.innerHTML=`<option value="">${first}</option>`+values.map(([val,lab])=>`<option value="${esc(val)}">${esc(lab)}</option>`).join('');
+  if(values.some(([val])=>val===cur)) el.value=cur;
+}
+const cartOrder={'DIVERGÊNCIA':0,'EM ANDAMENTO':1,'CORRETA':2,'CANCELADA':3};
+function cartSetStatus(v){ const el=document.getElementById('cartStatus'); if(!el) return; el.value=(el.value===v?'':v); if(v==='ACIMA'){ el.value=''; const t=document.getElementById('cartTime'); t.value=t.value==='ACIMA'?'':'ACIMA'; } cartRender(); }
+function cartClearFilters(){ ['cartSearch','cartCycle','cartTipo','cartAuditor','cartStatus','cartTime'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); cartRender(); }
+
+function cartRender(){
+  if(!document.getElementById('cartKpis')) return;
+  const all=cartRows();
+  const cycles=[...new Set(all.map(x=>x.ciclo).filter(Boolean))].sort((a,b)=>a==='NUMÉRICO'?1:b==='NUMÉRICO'?-1:a.localeCompare(b));
+  cartFillSelect('cartCycle',cycles.map(c=>[c,c==='NUMÉRICO'?'Numérico':c]),'Todos os ciclos');
+  const auds={}; all.forEach(x=>{ const k=norm(x.auditor); if(k&&!auds[k]) auds[k]=x.auditor; });
+  cartFillSelect('cartAuditor',Object.entries(auds).sort((a,b)=>a[1].localeCompare(b[1],'pt-BR')),'Todos os auditores');
+  const rows=cartFiltered(all);
+  try{ cartUpdateFilterBtn(); }catch(e){}
+  const fin=rows.filter(x=>x.fin), sla=cartSla();
+  const sum=f=>fin.reduce((s,x)=>s+(+x[f]||0),0);
+  const recCars=new Set(rows.filter(x=>x.recont>1).map(x=>norm(x.carrinho))).size;
+  const st=document.getElementById('cartStatus').value, tm=document.getElementById('cartTime').value;
+  const cards=[
+    ['Auditadas',fin.length,'cyan','',''],
+    ['Corretas',fin.filter(x=>x.status==='CORRETA').length,'green','','CORRETA'],
+    ['Com divergência',fin.filter(x=>x.status==='DIVERGÊNCIA').length,'red','','DIVERGÊNCIA'],
+    ['Em andamento',rows.filter(x=>x.status==='EM ANDAMENTO').length,'yellow','','EM ANDAMENTO'],
+    ['Canceladas',rows.filter(x=>x.status==='CANCELADA').length,'blue','','CANCELADA'],
+    ['Acima do tempo',fin.filter(x=>x.tempo>sla).length,'red',`limite ${sla} min`,'ACIMA'],
+    ['A mais',fin.filter(x=>x.amais>0).length,'violet',`${sum('amais')} pacote(s)`,'AMAIS'],
+    ['Faltantes',fin.filter(x=>x.faltantes>0).length,'orange',`${sum('faltantes')} pacote(s)`,'FALTANTE'],
+    ['Avariados',fin.filter(x=>x.avariados>0).length,'indigo',`${sum('avariados')} pacote(s)`,'AVARIA'],
+    ['Recontados',recCars,'turquoise','auditado 2x ou mais','RECONT']
+  ];
+  document.getElementById('cartKpis').innerHTML=cards.map(c=>{
+    const on=c[4]&&((c[4]==='ACIMA'&&tm==='ACIMA')||(c[4]!=='ACIMA'&&st===c[4]));
+    return `<div class="kpi ${c[2]}${on?' led-on':''}" data-v="${c[1]}" ${c[4]?`onclick="cartSetStatus('${c[4]}')" title="Clique para filtrar"`:''}><span>${c[0]}</span><b>${c[1]}</b>${c[3]?`<small>${esc(c[3])}</small>`:''}</div>`;
+  }).join('');
+  const total=Object.keys(cartStore()).length;
+  document.getElementById('cartCount').textContent=`${total} auditorias`;
+  document.getElementById('cartSummary').textContent=`${rows.length} auditorias no filtro atual`;
+  const tc=document.getElementById('tabCartCount'); if(tc) tc.textContent=total;
+
+  rows.sort((a,b)=>(cartOrder[a.status]-cartOrder[b.status])||(b.div-a.div)||String(a.carrinho).localeCompare(String(b.carrinho),'pt-BR',{numeric:true})||String(a.hora).localeCompare(String(b.hora)));
+  const pill={'CORRETA':'ok','DIVERGÊNCIA':'div','EM ANDAMENTO':'wait','CANCELADA':'cancel'};
+  const dash='—';
+  const aduPill=x=>!x.aduStatus?dash:`<span class="pill ${x.aduStatus==='CORRETA'?'ok':x.aduStatus==='DIVERGÊNCIA'?'div':'wait'}" title="Aduana ${esc(x.aduId)}${x.motorista?' · '+esc(x.motorista):''}${x.log?' · LOG '+esc(x.log):''}${x.aduDiv?' · '+x.aduDiv+' pacote(s) divergente(s)':''}">${x.aduStatus==='DIVERGÊNCIA'?'DIV '+x.aduDiv:x.aduStatus==='CORRETA'?'OK':esc(x.aduStatus)}</span>`;
+  const idCell=x=>x.via==='ambiguo'?`<span title="Mais de uma rota com esse número: ${esc(x.opcoes.join(', '))}">vários</span>`:esc(x.plannedId||dash)+(x.rotaPlan?`<div class="tiny">${esc(x.rotaPlan)}</div>`:'');
+  document.getElementById('cartTbody').innerHTML=rows.length?rows.map(x=>`<tr class="${x.late?'late':''}${x.status==='CANCELADA'?' cancelled':''}${x.achado?'':' nomatch'}">
+    <td><span class="pill ${pill[x.status]}">${x.status}</span></td>
+    <td><b>${esc(x.carrinho)}</b>${x.recont>1?` <span class="pill wait" title="Carrinho auditado ${x.recont} vezes (concluídas)">${x.recont}x</span>`:''}</td>
+    <td title="${esc(x.auditor)}">${esc(x.auditor||dash)}</td>
+    <td>${esc(x.hora||dash)}</td>
+    <td>${x.status==='EM ANDAMENTO'?`<span title="Tempo no momento da colagem">⏳ ${x.tempo}</span>`:`${x.tempo}${x.late?' ⚠️':''}`}</td>
+    <td>${x.corretos}</td><td>${x.amais}</td><td>${x.faltantes}</td><td>${x.avariados}</td><td><b>${x.div}</b></td>
+    <td class="src">${idCell(x)}</td>
+    <td class="src" title="${esc(x.transportadora)}">${esc(x.transportadora||dash)}</td>
+    <td class="src">${esc(x.rua||dash)}</td><td class="src">${esc(x.vaga||dash)}</td><td class="src">${esc(x.veiculo||dash)}</td>
+    <td class="src">${aduPill(x)}</td><td class="src">${x.backlog||dash}</td></tr>`).join('')
+    :`<tr><td colspan="17" class="empty">${total?'Nenhuma auditoria para este filtro.':'Cole a tela de Auditoria de Carrinho no painel ao lado para começar.'}</td></tr>`;
+  const found=all.filter(x=>x.achado).length, planN=Object.keys(planning||{}).length;
+  const ms=document.getElementById('cartMatchStatus');
+  if(ms) ms.innerHTML=!total?'':!planN?'⚠️ Nenhuma planilha carregada nesta data. Carregue a <b>Base / Planification / Planejamento</b> na aba Aduana para puxar transportadora, rua, vaga e ID planejado.':`Cruzamento com as planilhas: <b>${found}</b> de <b>${total}</b> auditorias encontradas (${all.filter(x=>x.tipoCar==='Rota'&&x.achado).length} de rota · ${all.filter(x=>x.tipoCar==='Numérico'&&x.achado).length} numéricas pelo ID planejado).`;
+
+  // Maiores divergências
+  const top=fin.filter(x=>x.div>0).sort((a,b)=>b.div-a.div).slice(0,30);
+  document.getElementById('cartTopDiv').innerHTML=top.length?`<div class="cartRow h"><span>Carrinho · Auditor</span><span>A mais</span><span>Falt.</span><span>Total</span></div>`+top.map(x=>`<div class="cartRow"><span title="${esc(x.auditor)}"><b>${esc(x.carrinho)}</b> · ${esc(x.auditor)}</span><span>${x.amais}</span><span>${x.faltantes}</span><span class="${x.div>=10?'hot':''}">${x.div}</span></div>`).join(''):'<div class="empty">Nenhuma divergência no filtro atual.</div>';
+  // Auditores
+  const am={}; fin.forEach(x=>{ const k=x.auditor||'Sem auditor'; const o=am[k]||(am[k]={n:0,d:0,t:0}); o.n++; o.d+=x.div>0?1:0; o.t+=+x.tempo||0; });
+  const arr=Object.entries(am).sort((a,b)=>b[1].d-a[1].d||b[1].n-a[1].n);
+  document.getElementById('cartAuditors').innerHTML=arr.length?`<div class="cartRow h"><span>Auditor</span><span>Audit.</span><span>C/ div.</span><span>Méd. min</span></div>`+arr.map(([n,o])=>`<div class="cartRow"><span title="${esc(n)}">${esc(n)}</span><span>${o.n}</span><span class="${o.d>=3?'hot':''}">${o.d}</span><span>${Math.round(o.t/o.n)}</span></div>`).join(''):'<div class="empty">Sem auditorias concluídas.</div>';
+  // Em andamento
+  const open=rows.filter(x=>x.status==='EM ANDAMENTO').sort((a,b)=>b.tempo-a.tempo);
+  document.getElementById('cartOpen').innerHTML=open.length?`<div class="cartRow h"><span>Carrinho · Auditor</span><span>Início</span><span>Min</span><span></span></div>`+open.map(x=>`<div class="cartRow"><span title="${esc(x.auditor)}"><b>${esc(x.carrinho)}</b> · ${esc(x.auditor)}</span><span>${esc(x.hora)}</span><span class="${x.tempo>sla?'hot':''}">${x.tempo}</span><span>${x.tempo>sla?'⚠️':''}</span></div>`).join(''):'<div class="empty">Nenhuma auditoria em andamento.</div>';
+}
+
+function cartExportExcel(){
+  const rows=cartFiltered(cartRows());
+  if(!rows.length){ alert('Não há auditorias de carrinho para exportar neste filtro.'); return; }
+  if(typeof XLSX==='undefined'){ alert('A biblioteca de Excel não carregou. Verifique a internet e tente de novo.'); return; }
+  const data=rows.map(x=>({Status:x.status,Carrinho:x.carrinho,Tipo:x.tipoCar,Tipo_auditoria:x.tipo,Ciclo:x.ciclo==='NUMÉRICO'?'':x.ciclo,Auditor:x.auditor,Inicio:x.hora,Data:x.dataTxt,Tempo_min:x.tempo,Acima_do_tempo:x.late?'SIM':'',Corretos:x.corretos,A_mais:x.amais,Faltantes:x.faltantes,Avariados:x.avariados,Divergencia:x.div,Vezes_auditado:x.recont,Estado_original:x.estado,Encontrado_planilha:x.achado?'SIM':(x.via==='ambiguo'?'VÁRIAS ROTAS':'NÃO'),Rota_planilha:x.rotaPlan||(x.tipoCar==='Rota'&&x.achado?x.carrinho:''),ID_planejado:x.plannedId,Transportadora:x.transportadora,Rua:x.rua,Vaga:x.vaga,Veiculo:x.veiculo,Detalhe_roteiro:x.detalhe,Aduana_ID:x.aduId,Aduana_status:x.aduStatus,Aduana_divergencia:x.aduStatus?x.aduDiv:'',Motorista:x.motorista,LOG:x.log,Backlog:x.backlog}));
+  const fin=rows.filter(x=>x.fin), am={};
+  fin.forEach(x=>{ const k=x.auditor||'Sem auditor'; const o=am[k]||(am[k]={Auditor:k,Auditorias:0,Com_divergencia:0,Pacotes_divergentes:0,Tempo_total:0}); o.Auditorias++; o.Com_divergencia+=x.div>0?1:0; o.Pacotes_divergentes+=x.div; o.Tempo_total+=+x.tempo||0; });
+  const aud=Object.values(am).map(o=>({Auditor:o.Auditor,Auditorias:o.Auditorias,Com_divergencia:o.Com_divergencia,Pacotes_divergentes:o.Pacotes_divergentes,Tempo_medio_min:Math.round(o.Tempo_total/o.Auditorias)})).sort((a,b)=>b.Com_divergencia-a.Com_divergencia);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(data); ws['!cols']=Object.keys(data[0]).map(k=>({wch:Math.max(10,k.length+2,k==='Auditor'?34:0)}));
+  XLSX.utils.book_append_sheet(wb,ws,'Carrinhos');
+  if(aud.length){ const wa=XLSX.utils.json_to_sheet(aud); wa['!cols']=[{wch:36},{wch:12},{wch:17},{wch:20},{wch:16}]; XLSX.utils.book_append_sheet(wb,wa,'Auditores'); }
+  XLSX.writeFile(wb,`auditoria-carrinho-${activeDate}.xlsx`);
+}
+
+
+/* ---------- recolher painel lateral e filtros (mesmo estilo da Aduana) ---------- */
+const CART_SIDE='carrinho_sidebar_hidden_v1', CART_IDLE_MS=120000;
+let cartSideTimer=null, cartFilterTimer=null;
+function cartMainEl(){ return document.querySelector('.cartMain'); }
+function cartSetSidebar(hidden){
+  const m=cartMainEl(), b=document.getElementById('cartSidebarToggle'); if(!m) return;
+  m.classList.toggle('sidebar-hidden',hidden);
+  if(b){ b.textContent=hidden?'▶ Abrir painel':'◀ Guardar painel'; b.title=hidden?'Mostrar colagem e configuração do carrinho':'Guardar colagem e configuração do carrinho'; }
+  try{ LS.setItem(CART_SIDE,hidden?'1':'0'); }catch(e){}
+  clearTimeout(cartSideTimer); if(!hidden) cartSideTimer=setTimeout(()=>cartSetSidebar(true),CART_IDLE_MS);
+}
+function cartToggleSidebar(){ cartSetSidebar(!cartMainEl()?.classList.contains('sidebar-hidden')); }
+function cartActiveFilters(){ return ['cartSearch','cartCycle','cartTipo','cartAuditor','cartStatus','cartTime'].filter(id=>document.getElementById(id)?.value).length; }
+function cartUpdateFilterBtn(){
+  const p=document.getElementById('cartFilterPanel'), b=document.getElementById('cartFilterBtn'); if(!p||!b) return;
+  const open=!p.classList.contains('recolhido'), n=cartActiveFilters();
+  b.classList.toggle('ativo',open||n>0);
+  b.innerHTML=open?'✕ Fechar filtros':(n?`⚙ Filtros (${n})`:'⚙ Filtros');
+  b.setAttribute('aria-expanded',open?'true':'false');
+}
+function cartSetFilters(open){
+  const p=document.getElementById('cartFilterPanel'); if(!p) return;
+  p.classList.toggle('recolhido',!open); cartUpdateFilterBtn();
+  clearTimeout(cartFilterTimer); if(open) cartFilterTimer=setTimeout(()=>cartSetFilters(false),CART_IDLE_MS);
+}
+function cartToggleFilters(){ cartSetFilters(document.getElementById('cartFilterPanel')?.classList.contains('recolhido')); }
+(function(){
+  const m=cartMainEl(); if(!m) return;
+  const side=m.querySelector('section:first-child'), fp=document.getElementById('cartFilterPanel');
+  ['pointerdown','input','change','keydown','touchstart'].forEach(ev=>{
+    side&&side.addEventListener(ev,()=>{ if(!m.classList.contains('sidebar-hidden')){ clearTimeout(cartSideTimer); cartSideTimer=setTimeout(()=>cartSetSidebar(true),CART_IDLE_MS); } },{passive:true});
+    fp&&fp.addEventListener(ev,()=>{ if(!fp.classList.contains('recolhido')){ clearTimeout(cartFilterTimer); cartFilterTimer=setTimeout(()=>cartSetFilters(false),CART_IDLE_MS); } },{passive:true});
+  });
+  let hidden=false; try{ hidden=LS.getItem(CART_SIDE)==='1'; }catch(e){}
+  cartSetSidebar(hidden); if(hidden) clearTimeout(cartSideTimer);
+  cartUpdateFilterBtn();
+})();
+
+/* ---------- abas ---------- */
+function setView(v){
+  const cart=v==='carrinho';
+  document.body.classList.toggle('view-carrinho',cart);
+  document.getElementById('tabAduana')?.classList.toggle('on',!cart);
+  document.getElementById('tabCarrinho')?.classList.toggle('on',cart);
+  const h=document.getElementById('pageTitle'); if(h) h.textContent=cart?'Auditoria de Carrinho':'Aduana em Tempo Real';
+  try{ LS.setItem(CART_TAB,cart?'carrinho':'aduana'); }catch(e){}
+  if(cart) cartRender();
+}
+// sempre que a Aduana redesenha (troca de data, sincronização, colagem), o carrinho acompanha
+if(typeof render==='function'){ const _r=render; render=function(){ const out=_r.apply(this,arguments); try{ cartRender(); }catch(e){ console.warn('Carrinho:',e); } return out; }; }
+try{ setView(LS.getItem(CART_TAB)==='carrinho'?'carrinho':'aduana'); }catch(e){ setView('aduana'); }
+cartRender();
 </script>
 
 </body></html>

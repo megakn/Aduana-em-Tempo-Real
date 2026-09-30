@@ -632,7 +632,7 @@ Concluída"></textarea>
           <div class="body">
             <div class="cfg"><label for="cartSla">Tempo esperado da auditoria (min)</label><input id="cartSla" type="number" min="1" value="15" onchange="cartSaveCfg();cartRender()"></div>
             <div class="tiny" style="margin-top:8px;line-height:1.5">Canceladas e em andamento não entram em Corretas, Divergência nem Tempo. A data segue o seletor de data do painel.</div>
-            <div class="actions"><button class="primary" onclick="cartExportExcel()">Exportar Excel</button><button class="danger" onclick="cartClearDay()">Limpar carrinhos do dia</button></div>
+            <div class="actions"><button class="primary" onclick="openReport()">Relatório do dia</button><button class="ghost" onclick="cartExportExcel()">Exportar Excel</button><button class="danger" onclick="cartClearDay()">Limpar carrinhos do dia</button></div>
           </div>
         </div>
         </div>
@@ -643,6 +643,7 @@ Concluída"></textarea>
             <h2>Visão de Carrinhos</h2>
             <div class="flex items-center gap-3" style="flex-wrap:wrap;justify-content:flex-end">
               <span class="tiny mono" id="cartSummary"></span>
+              <button type="button" class="primary" onclick="openReport()">📊 Relatório do dia</button>
               <button type="button" class="ghost" onclick="cartExportExcel()">📥 Exportar Excel</button>
               <button type="button" id="cartFilterBtn" class="filterBtn" onclick="cartToggleFilters()" aria-expanded="false">⚙ Filtros</button>
             </div>
@@ -680,12 +681,12 @@ Concluída"></textarea>
 <div class="modal" id="reportModal" onclick="if(event.target===this)closeReport()">
   <div class="report">
     <div class="reportTop">
-      <div><small>RELATÓRIO OPERACIONAL</small><h2>Dashboard diário de Aduana</h2><div class="tiny mono" id="reportDate"></div></div>
+      <div><small id="reportEyebrow">RELATÓRIO OPERACIONAL</small><h2 id="reportTitle">Dashboard diário de Aduana</h2><div class="tiny mono" id="reportDate"></div></div>
       <div class="actions">
 <button class="ghost" type="button" onclick="showDetailedReport()" title="Voltar ao relatório detalhado">▤ Relatório detalhado</button>
 <button id="dashboardInteractiveBtn" class="ghost outputActive" type="button" onclick="showExecutiveDashboard()" title="Abrir visão executiva">◉ Dashboard interativo</button>
 <button class="primary" type="button" onclick="printExecutiveReport()">▣ PDF Executivo</button>
-<button class="ghost" type="button" onclick="exportExcel()">⇩ Excel Completo</button>
+<button class="ghost" type="button" onclick="reportExportExcel()">⇩ Excel Completo</button>
 <button class="ghost" onclick="closeReport()">Fechar</button>
 </div>
     </div>
@@ -693,7 +694,7 @@ Concluída"></textarea>
   <div class="execHero">
     <div class="execHeroMain">
       <small>EXECUTIVE CONTROL TOWER</small>
-      <h3>Performance operacional da Aduana</h3>
+      <h3 id="execMainTitle">Performance operacional da Aduana</h3>
       <p id="execNarrative">Consolidando os indicadores da data selecionada...</p>
     </div>
     <div class="execHeroMain execScore"><span>ÍNDICE DE CONFORMIDADE</span><b id="execCompliance">—</b><small id="execDate">—</small></div>
@@ -706,11 +707,11 @@ Concluída"></textarea>
     <div class="execKpi"><span>Pacotes impactados</span><b id="execPkg">0</b></div>
   </div>
   <div class="execGrid">
-    <div class="execPanel"><h4>Transportadoras · concentração de divergências</h4><div id="execCarrierBars"></div></div>
+    <div class="execPanel"><h4 id="execLeftTitle">Transportadoras · concentração de divergências</h4><div id="execCarrierBars"></div></div>
     <div class="execPanel"><h4>Top ocorrências para atuação</h4><div id="execCriticalTable"></div></div>
   </div>
   <div class="execGrid" style="margin-top:14px">
-    <div class="execPanel"><h4>Distribuição operacional por rua</h4><div id="execStreetBars"></div></div>
+    <div class="execPanel"><h4 id="execBottomTitle">Distribuição operacional por rua</h4><div id="execStreetBars"></div></div>
     <div class="execPanel"><h4>Leitura gerencial</h4><div id="execManagement" style="font-size:12px;line-height:1.7;color:var(--mid)"></div></div>
   </div>
 </div>
@@ -719,10 +720,10 @@ Concluída"></textarea>
       <div class="reportToolbar"><label for="reportDateFilter">Data do relatório</label><input id="reportDateFilter" type="date" onchange="changeReportDate(this.value)"><button class="ghost" onclick="openReportCalendar()">📅 Calendário</button><span class="tiny" id="reportHistoryStatus">Selecione uma data para consultar o histórico.</span></div>
       <div class="execHero"><div class="execScore"><small>Índice de conformidade</small><strong id="reportCompliance">0%</strong><p id="reportExecutiveText">Resumo executivo da operação selecionada.</p></div><div class="execMini"><div><span>Taxa de divergência</span><b id="reportDivergenceRate">0%</b></div><div><span>Dentro do SLA</span><b id="reportSlaRate">0%</b></div><div><span>Pacotes divergentes</span><b id="reportPackageImpact">0</b></div><div><span>Rotas críticas</span><b id="reportCriticalRoutes">0</b></div></div></div>
       <div class="reportGrid" id="reportKpis"></div>
-      <div class="reportCols"><div class="miniPanel"><b>Resultado das Aduanas</b><div id="statusBars"></div></div><div class="miniPanel"><b>Volume por transportadora</b><div id="carrierBars"></div></div></div>
-      <div class="reportCols"><div class="miniPanel"><b>Transportadoras com mais divergências</b><div id="carrierDivergenceBars"></div></div><div class="miniPanel"><b>Distribuição por rua</b><div id="streetBars"></div></div></div>
+      <div class="reportCols"><div class="miniPanel"><b id="reportResultTitle">Resultado das Aduanas</b><div id="statusBars"></div></div><div class="miniPanel"><b id="reportVolumeTitle">Volume por transportadora</b><div id="carrierBars"></div></div></div>
+      <div class="reportCols"><div class="miniPanel"><b id="reportDivTitle">Transportadoras com mais divergências</b><div id="carrierDivergenceBars"></div></div><div class="miniPanel"><b id="reportStreetTitle">Distribuição por rua</b><div id="streetBars"></div></div></div>
       <div class="miniPanel" style="margin-top:12px"><b>Principais ocorrências do dia</b><div id="reportIssues" style="margin-top:10px"></div></div>
-      <div class="reportCols"><div class="miniPanel"><b>Reincidência por LOG</b><div id="logRecurrence" style="margin-top:10px"></div></div><div class="miniPanel"><b>Reincidência por motorista</b><div id="driverRecurrence" style="margin-top:10px"></div></div></div>
+      <div class="reportCols"><div class="miniPanel"><b id="reportRec1Title">Reincidência por LOG</b><div id="logRecurrence" style="margin-top:10px"></div></div><div class="miniPanel"><b id="reportRec2Title">Reincidência por motorista</b><div id="driverRecurrence" style="margin-top:10px"></div></div></div>
       <div class="managementNote" id="managementNote"></div>
     </div>
   </div>
@@ -1791,6 +1792,82 @@ function setView(v){
 if(typeof render==='function'){ const _r=render; render=function(){ const out=_r.apply(this,arguments); try{ cartRender(); }catch(e){ console.warn('Carrinho:',e); } return out; }; }
 try{ setView(LS.getItem(CART_TAB)==='carrinho'?'carrinho':'aduana'); }catch(e){ setView('aduana'); }
 cartRender();
+</script>
+
+
+<script id="cartReportParityV1">
+/* ===== RELATÓRIO DA AUDITORIA DE CARRINHO — mesma estrutura da Aduana ===== */
+let reportMode='aduana';
+const _aduOpenReport = openReport;
+const _aduRenderReport = renderReport;
+const _aduRenderExecutiveDashboard = typeof renderExecutiveDashboard==='function' ? renderExecutiveDashboard : null;
+
+function isCartReport(){ return reportMode==='carrinho'; }
+function reportExportExcel(){ return isCartReport()?cartExportExcel():exportExcel(); }
+function setReportTexts(cart){
+  const T=(id,txt)=>{const e=document.getElementById(id);if(e)e.textContent=txt};
+  T('reportEyebrow',cart?'RELATÓRIO OPERACIONAL · AUDITORIA':'RELATÓRIO OPERACIONAL');
+  T('reportTitle',cart?'Dashboard diário de Auditoria de Carrinho':'Dashboard diário de Aduana');
+  T('execMainTitle',cart?'Performance da Auditoria de Carrinho':'Performance operacional da Aduana');
+  T('execLeftTitle',cart?'Auditores · concentração de divergências':'Transportadoras · concentração de divergências');
+  T('execBottomTitle',cart?'Distribuição por transportadora':'Distribuição operacional por rua');
+  T('reportResultTitle',cart?'Resultado das auditorias':'Resultado das Aduanas');
+  T('reportVolumeTitle',cart?'Volume por auditor':'Volume por transportadora');
+  T('reportDivTitle',cart?'Auditores com mais divergências':'Transportadoras com mais divergências');
+  T('reportStreetTitle',cart?'Distribuição por transportadora':'Distribuição por rua');
+  T('reportRec1Title',cart?'Carrinhos reincidentes':'Reincidência por LOG');
+  T('reportRec2Title',cart?'Auditores com reincidência':'Reincidência por motorista');
+}
+function openReport(){
+  reportMode=document.body.classList.contains('view-carrinho')?'carrinho':'aduana';
+  setReportTexts(isCartReport());
+  const f=document.getElementById('reportDateFilter'); if(f)f.value=activeDate;
+  renderReport();
+  document.getElementById('reportModal')?.classList.add('open');
+}
+function renderReport(){ if(!isCartReport()) return _aduRenderReport(); return renderCartReport(); }
+function cartCountMap(rows,keyFn){const m={};rows.forEach(x=>{const k=keyFn(x)||'Não informado';m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
+function cartDivMap(rows,keyFn){const m={};rows.filter(x=>x.div>0).forEach(x=>{const k=keyFn(x)||'Não informado';m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
+function renderCartReport(){
+  setReportTexts(true);
+  const rows=cartRows(), fin=rows.filter(x=>x.fin), ok=fin.filter(x=>x.status==='CORRETA'), dv=fin.filter(x=>x.status==='DIVERGÊNCIA'), open=rows.filter(x=>x.status==='EM ANDAMENTO'), cancel=rows.filter(x=>x.status==='CANCELADA'), late=fin.filter(x=>x.late);
+  const amais=fin.reduce((s,x)=>s+(+x.amais||0),0), falt=fin.reduce((s,x)=>s+(+x.faltantes||0),0), av=fin.reduce((s,x)=>s+(+x.avariados||0),0), pkg=amais+falt+av;
+  const compliance=fin.length?ok.length/fin.length*100:0, divRate=fin.length?dv.length/fin.length*100:0, slaRate=fin.length?(fin.length-late.length)/fin.length*100:0;
+  const recCars=new Set(fin.filter(x=>x.recont>1).map(x=>norm(x.carrinho))).size;
+  document.getElementById('reportDate').textContent='Data operacional · '+new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR');
+  document.getElementById('reportKpis').innerHTML=[['Auditorias na visão',rows.length],['Concluídas',fin.length],['Corretas',ok.length],['Com divergência',dv.length],['Em andamento',open.length],['Canceladas',cancel.length],['Acima do tempo',late.length],['Reauditados',recCars]].map(x=>`<div class="rKpi"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
+  document.getElementById('reportCompliance').textContent=compliance.toFixed(1).replace('.',',')+'%';
+  document.getElementById('reportDivergenceRate').textContent=divRate.toFixed(1).replace('.',',')+'%';
+  document.getElementById('reportSlaRate').textContent=slaRate.toFixed(1).replace('.',',')+'%';
+  document.getElementById('reportPackageImpact').textContent=pkg;
+  document.getElementById('reportCriticalRoutes').textContent=dv.length;
+  document.getElementById('reportExecutiveText').textContent=`${fin.length} auditorias concluídas · ${ok.length} corretas · ${dv.length} com divergência · ${late.length} acima do SLA.`;
+  const status=[['Corretas',ok.length],['Com divergência',dv.length],['Em andamento',open.length],['Canceladas',cancel.length]];
+  document.getElementById('statusBars').innerHTML=reportBarHtml(status);
+  const byAud=cartCountMap(fin,x=>x.auditor); document.getElementById('carrierBars').innerHTML=reportBarHtml(byAud.slice(0,15));
+  const divAud=cartDivMap(fin,x=>x.auditor); document.getElementById('carrierDivergenceBars').innerHTML=reportBarHtml(divAud.slice(0,15));
+  const byCarrier=cartCountMap(fin,x=>x.transportadora||'Sem transportadora'); document.getElementById('streetBars').innerHTML=reportBarHtml(byCarrier.slice(0,15));
+  const issues=fin.filter(x=>x.div>0||x.late).sort((a,b)=>b.div-a.div||b.tempo-a.tempo).slice(0,20);
+  document.getElementById('reportIssues').innerHTML=issues.length?`<table><thead><tr><th>Carrinho</th><th>Auditor</th><th>Status</th><th>Min</th><th>A mais</th><th>Falt.</th><th>Avar.</th><th>Diverg.</th><th>Transportadora</th></tr></thead><tbody>${issues.map(x=>`<tr><td><b>${esc(x.carrinho)}</b></td><td>${esc(x.auditor||'—')}</td><td>${esc(x.status)}</td><td>${x.tempo}${x.late?' ⚠️':''}</td><td>${x.amais}</td><td>${x.faltantes}</td><td>${x.avariados}</td><td><b>${x.div}</b></td><td>${esc(x.transportadora||'—')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhuma ocorrência crítica.</div>';
+  const rec=Object.values(fin.reduce((m,x)=>{const k=norm(x.carrinho);if(!m[k])m[k]={n:x.carrinho,c:0};m[k].c++;return m},{})).filter(x=>x.c>1).sort((a,b)=>b.c-a.c);
+  document.getElementById('logRecurrence').innerHTML=reportBarHtml(rec.map(x=>[x.n,x.c]).slice(0,15));
+  const audRec=Object.entries(fin.reduce((m,x)=>{const k=x.auditor||'Sem auditor';if(x.recont>1)m[k]=(m[k]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('driverRecurrence').innerHTML=reportBarHtml(audRec.slice(0,15));
+  document.getElementById('managementNote').innerHTML=`<b>Leitura gerencial:</b> conformidade de ${compliance.toFixed(1).replace('.',',')}%. Foram identificados <b>${pkg}</b> pacotes divergentes (${amais} a mais · ${falt} faltantes · ${av} avariados). ${late.length} auditoria(s) ficaram acima do SLA e ${recCars} carrinho(s) tiveram reaudição.`;
+  renderCartExecutiveDashboard();
+}
+function renderCartExecutiveDashboard(){
+  const rows=cartRows(),fin=rows.filter(x=>x.fin),ok=fin.filter(x=>x.status==='CORRETA'),dv=fin.filter(x=>x.status==='DIVERGÊNCIA'),late=fin.filter(x=>x.late);
+  const pkg=fin.reduce((s,x)=>s+x.div,0), comp=fin.length?ok.length/fin.length*100:0, sla=fin.length?(fin.length-late.length)/fin.length*100:0;
+  document.getElementById('execCompliance').textContent=comp.toFixed(1).replace('.',',')+'%'; document.getElementById('execDate').textContent=new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR');
+  document.getElementById('execRoutes').textContent=rows.length; document.getElementById('execDone').textContent=fin.length; document.getElementById('execDiv').textContent=dv.length; document.getElementById('execSla').textContent=sla.toFixed(1).replace('.',',')+'%'; document.getElementById('execPkg').textContent=pkg;
+  document.getElementById('execNarrative').textContent=`${fin.length} auditorias concluídas, ${ok.length} corretas e ${dv.length} com divergência. ${late.length} ficaram acima do tempo esperado.`;
+  const aud=cartDivMap(fin,x=>x.auditor).slice(0,10), mx=Math.max(1,...aud.map(x=>x[1])); document.getElementById('execCarrierBars').innerHTML=aud.length?aud.map(([n,v])=>`<div class="execBar"><label title="${esc(n)}">${esc(n)}</label><div class="execTrack"><i style="width:${v/mx*100}%"></i></div><strong>${v}</strong></div>`).join(''):'<div class="empty">Sem divergências.</div>';
+  const crit=fin.filter(x=>x.div>0||x.late).sort((a,b)=>b.div-a.div||b.tempo-a.tempo).slice(0,10); document.getElementById('execCriticalTable').innerHTML=crit.length?`<table class="execTable"><thead><tr><th>Carrinho</th><th>Auditor</th><th>Diverg.</th><th>Min</th></tr></thead><tbody>${crit.map(x=>`<tr><td><b>${esc(x.carrinho)}</b></td><td>${esc(x.auditor||'—')}</td><td class="execRisk">${x.div}</td><td>${x.tempo}${x.late?' ⚠️':''}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Sem ocorrências críticas.</div>';
+  const carr=cartCountMap(fin,x=>x.transportadora||'Sem transportadora').slice(0,10), cm=Math.max(1,...carr.map(x=>x[1])); document.getElementById('execStreetBars').innerHTML=carr.length?carr.map(([n,v])=>`<div class="execBar"><label title="${esc(n)}">${esc(n)}</label><div class="execTrack"><i style="width:${v/cm*100}%"></i></div><strong>${v}</strong></div>`).join(''):'<div class="empty">Sem dados.</div>';
+  const top=aud[0]; document.getElementById('execManagement').innerHTML=`Conformidade das auditorias em <b>${comp.toFixed(1).replace('.',',')}%</b>. Foram encontrados <b>${pkg}</b> pacotes divergentes. ${top?`O auditor com maior quantidade de auditorias divergentes no recorte é <b>${esc(top[0])}</b>, com <b>${top[1]}</b>.`:''} O painel considera somente dados da Auditoria de Carrinho na data selecionada.`;
+}
+function renderExecutiveDashboard(){ if(isCartReport()) return renderCartExecutiveDashboard(); if(_aduRenderExecutiveDashboard) return _aduRenderExecutiveDashboard(); }
 </script>
 
 </body></html>

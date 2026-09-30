@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- Motion (versão vanilla do Framer Motion) — se não carregar, o painel funciona igual, só sem animação -->
 <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
@@ -295,6 +296,14 @@ body.light .modal{ background:rgba(11,37,69,.28); }
 .report th{ text-align:left; font-family:'Geist Mono', monospace; font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--mid); padding:9px 10px; border-bottom:1px solid var(--line); background:var(--thead); }
 .report td{ padding:9px 10px; font-size:12px; border-bottom:1px solid var(--row-line); }
 
+
+/* ===== RELATÓRIO EXECUTIVO ===== */
+.reportToolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:16px;background:var(--chip)}
+.reportToolbar label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mid)}
+.reportToolbar input{height:38px;padding:0 12px;border-radius:11px;background:var(--field);color:var(--hi);border:1px solid var(--field-border);font-family:'Geist Mono',monospace}
+.execHero{display:grid;grid-template-columns:1.25fr .75fr;gap:12px;margin-bottom:12px}.execScore{padding:18px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--kn) 12%,transparent),var(--tile-b))}.execScore small{font:600 10px 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mid)}.execScore strong{display:block;font:700 38px 'Geist Mono',monospace;margin-top:8px}.execScore p{margin-top:8px;color:var(--mid);font-size:12px}.execMini{display:grid;grid-template-columns:1fr 1fr;gap:10px}.execMini>div{padding:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,var(--tile-a),var(--tile-b))}.execMini span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mid)}.execMini b{display:block;margin-top:7px;font:700 22px 'Geist Mono',monospace}.managementNote{margin-top:12px;padding:14px 16px;border-radius:16px;border:1px solid var(--line-2);background:color-mix(in srgb,var(--kn) 7%,transparent);font-size:12.5px;line-height:1.65}.managementNote b{color:var(--kn)}
+@media(max-width:800px){.execHero{grid-template-columns:1fr}.execMini{grid-template-columns:1fr 1fr}}
+
 /* ---------- skeletons (enquanto sincroniza Layout/Backlog na abertura) ---------- */
 .sk{ background:linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 37%, var(--sk-a) 63%); background-size:400% 100%; animation:shimmer 1.3s ease infinite; border-radius:8px; }
 @keyframes shimmer{ 0%{ background-position:100% 50%; } 100%{ background-position:0 50%; } }
@@ -313,6 +322,95 @@ body.is-loading #kpis .kpi b::after{ content:""; position:absolute; inset:0; bor
   .primary:active, .ghost:active, .danger:active, .clearMini:active, .filterBtn:active, .themeBtn:active, .filters button:active, .sidebarToggle:active{ transform:none !important; }
 }
 </style>
+
+<style>
+/* ===== RELATÓRIO: 3 SAÍDAS ===== */
+.reportOutputBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.reportOutputBar .outputActive{background:linear-gradient(180deg,#0A4A8F,#003369);color:#fff;border-color:#0099DA}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body *{visibility:hidden!important}
+  #reportModal,#reportModal *{visibility:visible!important}
+  #reportModal{position:absolute!important;inset:0!important;display:block!important;background:#fff!important;padding:0!important}
+  #reportModal .report{width:100%!important;max-height:none!important;overflow:visible!important;border:0!important;box-shadow:none!important;background:#fff!important;color:#0A2240!important}
+  #reportModal .reportTop{position:static!important;background:#071A30!important;color:#fff!important;border-radius:0!important}
+  #reportModal .reportBody{background:#fff!important}
+  #reportModal .actions,#reportModal .reportOutputBar{display:none!important}
+  #reportModal .rKpi,#reportModal .miniPanel{break-inside:avoid;background:#fff!important;border:1px solid #DCE5EF!important;color:#0A2240!important}
+  #reportModal .rKpi span,#reportModal .barRow span,#reportModal .tiny{color:#66788F!important}
+  #reportModal .rKpi b,#reportModal .miniPanel b,#reportModal td{color:#0A2240!important}
+  #reportModal th{background:#071A30!important;color:#fff!important}
+}
+</style>
+
+
+<style>
+/* correção dashboard interativo */
+#reportModal .reportBody{width:100%;}
+#reportModal .reportCols{align-items:stretch;}
+#reportModal .miniPanel:only-child{grid-column:1/-1;}
+#dashboardInteractiveBtn.outputActive{box-shadow:0 0 0 3px rgba(0,153,218,.14),0 8px 20px -10px rgba(0,51,105,.9);}
+.report.flash-dashboard{animation:dashboardReturn .38s ease-out;}
+@keyframes dashboardReturn{0%{box-shadow:0 0 0 0 rgba(0,153,218,.45)}50%{box-shadow:0 0 0 4px rgba(0,153,218,.22),0 40px 100px -30px rgba(0,0,0,.7)}100%{box-shadow:0 40px 100px -30px rgba(0,0,0,.7)}}
+</style>
+
+<style>
+/* Dashboard interativo em tela cheia */
+#reportModal.dashboard-fullscreen{padding:0!important;align-items:stretch!important;justify-content:stretch!important;background:var(--ink)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+#reportModal.dashboard-fullscreen .report{width:100vw!important;height:100vh!important;max-height:100vh!important;border-radius:0!important;border:0!important;box-shadow:none!important;}
+#reportModal.dashboard-fullscreen .reportTop{padding-left:28px!important;padding-right:28px!important;}
+#reportModal.dashboard-fullscreen .reportBody{max-width:1680px;width:100%;margin:0 auto;padding:24px 28px 40px!important;}
+#reportModal.dashboard-fullscreen #dashboardInteractiveBtn{background:linear-gradient(180deg,#0A4A8F,#003369)!important;color:#fff!important;border-color:#0099DA!important;box-shadow:0 0 0 3px rgba(0,153,218,.14)!important;}
+@media(max-width:800px){#reportModal.dashboard-fullscreen .reportBody{padding:16px!important}}
+</style>
+
+<style id="executiveV2Styles">
+/* ===== EXECUTIVE V2: dashboard is a distinct view, not fullscreen ===== */
+#reportModal.dashboard-fullscreen{padding:24px!important;align-items:center!important;justify-content:center!important;background:rgba(3,7,14,.55)!important}
+#reportModal.dashboard-fullscreen .report{width:min(1400px,96vw)!important;height:auto!important;max-height:92vh!important;border-radius:24px!important;border:1px solid var(--line-2)!important}
+#reportModal.dashboard-fullscreen .reportBody{max-width:none!important;width:auto!important;margin:0!important;padding:20px 22px 24px!important}
+#executiveDashboardView{display:none;padding:20px 22px 26px}
+#reportModal.exec-view #executiveDashboardView{display:block}
+#reportModal.exec-view .reportBody{display:none}
+#reportModal.exec-view #dashboardInteractiveBtn{background:linear-gradient(180deg,#0A4A8F,#003369)!important;color:#fff!important;border-color:#0099DA!important}
+.execHero{display:grid;grid-template-columns:1.4fr .6fr;gap:14px;margin-bottom:14px}
+.execHeroMain,.execPanel,.execKpi{border:1px solid var(--line);background:linear-gradient(180deg,var(--tile-a),var(--tile-b));border-radius:18px}
+.execHeroMain{padding:22px}.execHeroMain small{font:600 10px 'Geist Mono';letter-spacing:.13em;color:var(--kn)}
+.execHeroMain h3{font-size:26px;margin:7px 0 8px;letter-spacing:-.03em}.execHeroMain p{color:var(--mid);font-size:12.5px;line-height:1.6}
+.execScore{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:18px;text-align:center}
+.execScore b{font:700 42px 'Geist Mono';color:var(--green)}.execScore span{font:600 10px 'Geist Mono';letter-spacing:.1em;color:var(--mid)}
+.execKpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.execKpi{padding:14px 15px}.execKpi span{display:block;font:600 9px 'Geist Mono';letter-spacing:.08em;color:var(--mid);text-transform:uppercase}.execKpi b{display:block;margin-top:7px;font:700 24px 'Geist Mono'}
+.execGrid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}.execPanel{padding:16px;min-width:0}.execPanel h4{font-size:13px;margin:0 0 12px}
+.execBar{display:grid;grid-template-columns:145px 1fr 42px;gap:9px;align-items:center;margin:9px 0;font-size:11px}.execBar label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mid)}.execTrack{height:9px;background:var(--track);border-radius:99px;overflow:hidden}.execTrack i{display:block;height:100%;background:linear-gradient(90deg,#003369,#0099DA);border-radius:99px}.execBar strong{text-align:right;font:700 11px 'Geist Mono'}
+.execTable{width:100%;border-collapse:collapse}.execTable th{background:var(--thead);color:var(--mid);font:600 9px 'Geist Mono';padding:8px;text-align:left}.execTable td{padding:8px;font-size:11px;border-bottom:1px solid var(--row-line)}.execRisk{color:var(--red);font-weight:700}
+@media(max-width:900px){.execHero,.execGrid{grid-template-columns:1fr}.execKpis{grid-template-columns:repeat(2,1fr)}}
+
+/* PDF executivo: print only the compact executive dashboard */
+@media print{
+ @page{size:A4 landscape;margin:8mm}
+ html,body{background:#fff!important}
+ body *{visibility:hidden!important}
+ #reportModal,#reportModal .report,#reportModal .reportTop,#executiveDashboardView,#executiveDashboardView *{visibility:visible!important}
+ #reportModal{position:absolute!important;inset:0!important;display:block!important;padding:0!important;background:#fff!important}
+ #reportModal .report{width:100%!important;max-height:none!important;overflow:visible!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+ #reportModal .reportTop{position:static!important;background:#071A30!important;padding:10mm 10mm 6mm!important}
+ #reportModal .reportTop .actions{display:none!important}
+ #reportModal .reportBody{display:none!important}
+ #executiveDashboardView{display:block!important;padding:6mm 10mm!important;color:#0A2240!important}
+ #executiveDashboardView .execHeroMain,#executiveDashboardView .execPanel,#executiveDashboardView .execKpi{background:#fff!important;border-color:#DCE5EF!important;box-shadow:none!important}
+ #executiveDashboardView .execHeroMain h3,#executiveDashboardView .execKpi b,#executiveDashboardView .execPanel h4,#executiveDashboardView td{color:#0A2240!important}
+ #executiveDashboardView .execHeroMain p,#executiveDashboardView .execHeroMain small,#executiveDashboardView .execKpi span,#executiveDashboardView .execBar label{color:#66788F!important}
+ #executiveDashboardView .execScore b{color:#16A36A!important}
+ #executiveDashboardView .execGrid{grid-template-columns:1.05fr .95fr!important}
+ #executiveDashboardView .execKpis{grid-template-columns:repeat(5,1fr)!important}
+ #executiveDashboardView .execHero,#executiveDashboardView .execKpis,#executiveDashboardView .execGrid,#executiveDashboardView .execPanel{break-inside:avoid!important}
+ #executiveDashboardView .execPanel{padding:10px!important}
+ #executiveDashboardView .execBar{margin:5px 0!important}
+ #executiveDashboardView .execTable th,#executiveDashboardView .execTable td{padding:5px!important}
+}
+</style>
+
 </head>
 <body class="is-loading">
 <script>try{ if(localStorage.getItem('aduana_theme_v1')==='light') document.body.classList.add('light'); }catch(e){}</script>
@@ -468,13 +566,49 @@ Concluída"></textarea>
   <div class="report">
     <div class="reportTop">
       <div><small>RELATÓRIO OPERACIONAL</small><h2>Dashboard diário de Aduana</h2><div class="tiny mono" id="reportDate"></div></div>
-      <div class="actions"><button class="primary" onclick="exportExcel()">Exportar Excel</button><button class="ghost" onclick="closeReport()">Fechar</button></div>
+      <div class="actions">
+<button class="ghost" type="button" onclick="showDetailedReport()" title="Voltar ao relatório detalhado">▤ Relatório detalhado</button>
+<button id="dashboardInteractiveBtn" class="ghost outputActive" type="button" onclick="showExecutiveDashboard()" title="Abrir visão executiva">◉ Dashboard interativo</button>
+<button class="primary" type="button" onclick="printExecutiveReport()">▣ PDF Executivo</button>
+<button class="ghost" type="button" onclick="exportExcel()">⇩ Excel Completo</button>
+<button class="ghost" onclick="closeReport()">Fechar</button>
+</div>
     </div>
-    <div class="reportBody">
+    <div id="executiveDashboardView">
+  <div class="execHero">
+    <div class="execHeroMain">
+      <small>EXECUTIVE CONTROL TOWER</small>
+      <h3>Performance operacional da Aduana</h3>
+      <p id="execNarrative">Consolidando os indicadores da data selecionada...</p>
+    </div>
+    <div class="execHeroMain execScore"><span>ÍNDICE DE CONFORMIDADE</span><b id="execCompliance">—</b><small id="execDate">—</small></div>
+  </div>
+  <div class="execKpis">
+    <div class="execKpi"><span>Rotas na visão</span><b id="execRoutes">0</b></div>
+    <div class="execKpi"><span>Realizadas</span><b id="execDone">0</b></div>
+    <div class="execKpi"><span>Divergências</span><b id="execDiv">0</b></div>
+    <div class="execKpi"><span>Dentro do SLA</span><b id="execSla">—</b></div>
+    <div class="execKpi"><span>Pacotes impactados</span><b id="execPkg">0</b></div>
+  </div>
+  <div class="execGrid">
+    <div class="execPanel"><h4>Transportadoras · concentração de divergências</h4><div id="execCarrierBars"></div></div>
+    <div class="execPanel"><h4>Top ocorrências para atuação</h4><div id="execCriticalTable"></div></div>
+  </div>
+  <div class="execGrid" style="margin-top:14px">
+    <div class="execPanel"><h4>Distribuição operacional por rua</h4><div id="execStreetBars"></div></div>
+    <div class="execPanel"><h4>Leitura gerencial</h4><div id="execManagement" style="font-size:12px;line-height:1.7;color:var(--mid)"></div></div>
+  </div>
+</div>
+
+<div class="reportBody">
+      <div class="reportToolbar"><label for="reportDateFilter">Data do relatório</label><input id="reportDateFilter" type="date" onchange="changeReportDate(this.value)"><button class="ghost" onclick="openReportCalendar()">📅 Calendário</button><span class="tiny" id="reportHistoryStatus">Selecione uma data para consultar o histórico.</span></div>
+      <div class="execHero"><div class="execScore"><small>Índice de conformidade</small><strong id="reportCompliance">0%</strong><p id="reportExecutiveText">Resumo executivo da operação selecionada.</p></div><div class="execMini"><div><span>Taxa de divergência</span><b id="reportDivergenceRate">0%</b></div><div><span>Dentro do SLA</span><b id="reportSlaRate">0%</b></div><div><span>Pacotes divergentes</span><b id="reportPackageImpact">0</b></div><div><span>Rotas críticas</span><b id="reportCriticalRoutes">0</b></div></div></div>
       <div class="reportGrid" id="reportKpis"></div>
-      <div class="reportCols"><div class="miniPanel"><b>Resultado das Aduanas</b><div id="statusBars"></div></div><div class="miniPanel"><b>Aduanas por transportadora</b><div id="carrierBars"></div></div></div>
+      <div class="reportCols"><div class="miniPanel"><b>Resultado das Aduanas</b><div id="statusBars"></div></div><div class="miniPanel"><b>Volume por transportadora</b><div id="carrierBars"></div></div></div>
+      <div class="reportCols"><div class="miniPanel"><b>Transportadoras com mais divergências</b><div id="carrierDivergenceBars"></div></div><div class="miniPanel"><b>Distribuição por rua</b><div id="streetBars"></div></div></div>
       <div class="miniPanel" style="margin-top:12px"><b>Principais ocorrências do dia</b><div id="reportIssues" style="margin-top:10px"></div></div>
       <div class="reportCols"><div class="miniPanel"><b>Reincidência por LOG</b><div id="logRecurrence" style="margin-top:10px"></div></div><div class="miniPanel"><b>Reincidência por motorista</b><div id="driverRecurrence" style="margin-top:10px"></div></div></div>
+      <div class="managementNote" id="managementNote"></div>
     </div>
   </div>
 </div>
@@ -1022,10 +1156,54 @@ function renderPriorityRecurrence(){
 
 function renderTable(){renderPriorityRecurrence();let rows=getFilteredRows();renderFilteredKpis(rows);renderAlertSummary();updateCardLeds();const all=merged(),logRec=recurrenceMap(all,'rep'),drvRec=recurrenceMap(all,'motorista');rows.sort((a,b)=>a.rota.localeCompare(b.rota,'pt-BR',{numeric:true}));document.getElementById('tbody').innerHTML=rows.length?rows.map(x=>{const a=x.adu||{};const cls=x.status==='CORRETA'?'ok':x.status==='DIVERGÊNCIA'?'div':x.status==='AGUARDANDO'?'wait':'run';const lr=logRec[norm(a.rep||'')]||0,dr=drvRec[norm(a.motorista||'')]||0;const reinc=Math.max(lr,dr);return`<tr class="${x.late?'late':''}"><td><span class="pill ${cls}">${x.status}</span></td><td><b>${esc(x.rota)}</b></td><td>${esc(a.id||'—')}</td><td>${esc(x.transportadora||'—')}</td><td>${esc(a.motorista||'—')}</td><td>${esc(a.rep||'—')}</td><td>${reinc>1?`<span class="pill div" title="LOG: ${lr} ocorrência(s) · Motorista: ${dr} ocorrência(s)">⚠ ${reinc}x</span>`:'—'}</td><td>${esc(x.rua||'—')}</td><td>${a.tempo!=null&&x.adu?`<span class="tempoFinal"><span class="tempoNumero">${esc(a.tempo)}</span><span class="tempoMinuto">min</span><span class="tempoAlerta">${x.late?'⚠️':''}</span></span>`:'—'}</td><td>${x.adu?a.corretas:'—'}</td><td>${x.adu?a.amais:'—'}</td><td>${x.adu?a.faltantes:'—'}</td><td>${x.adu?a.avariadas:'—'}</td><td><b>${x.adu?x.div:'—'}</b></td><td>${x.backlog||0}</td><td>${esc(a.hora||'—')}</td></tr>`}).join(''):`<tr><td colspan="16" class="empty">Nenhum registro para este filtro.</td></tr>`}
 function setManualVaga(rota,value){const k=routeKey(rota);manual[k]={...(manual[k]||{}),vaga:String(value||'').trim()};save();}
-function openReport(){renderReport();document.getElementById('reportModal').classList.add('open')}
-function closeReport(){document.getElementById('reportModal').classList.remove('open')}
-function renderReport(){const rows=merged(),done=rows.filter(x=>x.adu),ok=done.filter(x=>x.status==='CORRETA'),dv=done.filter(x=>x.status==='DIVERGÊNCIA'),wait=rows.filter(x=>x.status==='AGUARDANDO'),late=done.filter(x=>x.late);const k=[['Realizadas',done.length],['Corretas',ok.length],['Com divergência',dv.length],['Aguardando',wait.length],['Acima do tempo',late.length],['A mais',done.reduce((s,x)=>s+(x.adu?.amais||0),0)],['Faltantes',done.reduce((s,x)=>s+(x.adu?.faltantes||0),0)],['Backlog relacionado',done.reduce((s,x)=>s+x.backlog,0)]];document.getElementById('reportDate').textContent='Data operacional · '+new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR');document.getElementById('reportKpis').innerHTML=k.map(x=>`<div class="rKpi"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');const status=[['Corretas',ok.length],['Divergência',dv.length],['Aguardando',wait.length],['Acima do tempo',late.length]],mx=Math.max(1,...status.map(x=>x[1]));document.getElementById('statusBars').innerHTML=status.map(x=>`<div class="barRow"><span>${x[0]}</span><div class="bar"><i style="width:${x[1]/mx*100}%"></i></div><b>${x[1]}</b></div>`).join('');const cm={};done.forEach(x=>{const c=x.transportadora||'Não identificada';cm[c]=(cm[c]||0)+1});const carr=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,10),cmx=Math.max(1,...carr.map(x=>x[1]));document.getElementById('carrierBars').innerHTML=carr.map(x=>`<div class="barRow"><span title="${esc(x[0])}">${esc(x[0])}</span><div class="bar"><i style="width:${x[1]/cmx*100}%"></i></div><b>${x[1]}</b></div>`).join('')||'<div class="empty">Sem dados.</div>';const issues=done.filter(x=>x.div>0||x.late||x.backlog>0).sort((a,b)=>(b.div+b.backlog)-(a.div+a.backlog)).slice(0,20);document.getElementById('reportIssues').innerHTML=issues.length?`<table style="min-width:900px"><thead><tr><th>Rota</th><th>Transportadora</th><th>Rua</th><th>Vaga</th><th>Tempo</th><th>Divergência</th><th>Backlog</th></tr></thead><tbody>${issues.map(x=>`<tr><td><b>${esc(x.rota)}</b></td><td>${esc(x.transportadora||'—')}</td><td>${esc(x.rua||'—')}</td><td>${esc(x.vaga||'—')}</td><td>${x.tempo||0} min</td><td>${x.div}</td><td>${x.backlog}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhuma ocorrência crítica.</div>';const recHtml=(field)=>{const mp=recurrenceMap(done,field);const arr=Object.entries(mp).filter(x=>x[1]>1).sort((a,b)=>b[1]-a[1]);return arr.length?arr.map(([n,c])=>`<div class="barRow"><span title="${esc(n)}">${esc(n)}</span><div class="bar"><i style="width:${Math.min(100,c/Math.max(...arr.map(z=>z[1]))*100)}%"></i></div><b>${c}x</b></div>`).join(''):'<div class="empty">Sem reincidência no dia.</div>'};document.getElementById('logRecurrence').innerHTML=recHtml('rep');document.getElementById('driverRecurrence').innerHTML=recHtml('motorista')}
-function exportExcel(){const rows=merged(),done=rows.filter(x=>x.adu),dv=done.filter(x=>x.div>0),late=done.filter(x=>x.late),withBl=done.filter(x=>x.backlog>0);const wb=XLSX.utils.book_new();const resumo=[['RELATÓRIO OPERACIONAL DE ADUANA'],['Data',new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR')],['Última atualização',new Date().toLocaleString('pt-BR')],[],['INDICADOR','VALOR'],['Rotas na visão',rows.length],['Aduanas realizadas',done.length],['Corretas',done.filter(x=>x.status==='CORRETA').length],['Com divergência',dv.length],['Aguardando',rows.filter(x=>x.status==='AGUARDANDO').length],['Acima do tempo',late.length],['Unidades a mais',done.reduce((s,x)=>s+(x.adu?.amais||0),0)],['Pacotes faltantes',done.reduce((s,x)=>s+(x.adu?.faltantes||0),0)],['Avariadas',done.reduce((s,x)=>s+(x.adu?.avariadas||0),0)],['Rotas com backlog',withBl.length]];const ws0=XLSX.utils.aoa_to_sheet(resumo);ws0['!cols']=[{wch:30},{wch:22}];XLSX.utils.book_append_sheet(wb,ws0,'Dashboard');const logRec=recurrenceMap(rows,'rep'),drvRec=recurrenceMap(rows,'motorista');const data=rows.map(x=>({Status:x.status,Rota:x.rota,Aduana:x.adu?.id||'',Transportadora:x.transportadora||'',LOG:x.adu?.rep||'',Motorista:x.adu?.motorista||'',Placa:x.adu?.placa||'',Reincidencia_LOG:x.adu?.rep?(logRec[norm(x.adu.rep)]||0):0,Reincidencia_Motorista:x.adu?.motorista?(drvRec[norm(x.adu.motorista)]||0):0,Rua:x.rua||'',Vaga:x.vaga||'',Tempo_min:x.adu?.tempo??'',Corretas:x.adu?.corretas??'',A_mais:x.adu?.amais??'',Faltantes:x.adu?.faltantes??'',Avariadas:x.adu?.avariadas??'',Divergencia:x.adu?x.div:'',Backlog:x.backlog,Horario:x.adu?.hora||''}));const add=(name,arr)=>{const ws=XLSX.utils.json_to_sheet(arr);ws['!cols']=[{wch:14},{wch:14},{wch:16},{wch:24},{wch:22},{wch:24},{wch:14},{wch:16},{wch:20},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:20}];XLSX.utils.book_append_sheet(wb,ws,name)};add('Visao Operacional',data);add('Divergencias',data.filter(x=>x.Divergencia>0));add('Acima do Tempo',data.filter((x,i)=>{const r=rows[i];return r?.late}));add('Com Backlog',data.filter(x=>x.Backlog>0));const by={};done.forEach(x=>{const c=x.transportadora||'Não identificada';by[c]??={Transportadora:c,Realizadas:0,Corretas:0,Divergentes:0,A_mais:0,Faltantes:0,Avariadas:0,Backlog:0};const z=by[c];z.Realizadas++;z.Corretas+=x.status==='CORRETA';z.Divergentes+=x.status==='DIVERGÊNCIA';z.A_mais+=x.adu?.amais||0;z.Faltantes+=x.adu?.faltantes||0;z.Avariadas+=x.adu?.avariadas||0;z.Backlog+=x.backlog});add('Transportadoras',Object.values(by).sort((a,b)=>b.Realizadas-a.Realizadas));XLSX.writeFile(wb,`Relatorio_Aduana_${activeDate}.xlsx`)}
+function openReport(){const f=document.getElementById('reportDateFilter');if(f)f.value=activeDate;renderReport();document.getElementById('reportModal').classList.add('open')}
+function openReportCalendar(){const el=document.getElementById('reportDateFilter');if(!el)return;try{if(typeof el.showPicker==='function')el.showPicker();else{el.focus();el.click()}}catch(e){el.focus()}}
+async function changeReportDate(date){if(!date)return;const st=document.getElementById('reportHistoryStatus');if(st)st.textContent='Carregando histórico...';await changeOperationalDate(date);const f=document.getElementById('reportDateFilter');if(f)f.value=activeDate;renderReport();if(st)st.textContent=history[date]?'Histórico carregado para o relatório.':'Data sem histórico salvo.'}
+function reportBarHtml(arr){const mx=Math.max(1,...arr.map(x=>x[1]));return arr.length?arr.map(x=>`<div class="barRow"><span title="${esc(x[0])}">${esc(x[0])}</span><div class="bar"><i style="width:${x[1]/mx*100}%"></i></div><b>${x[1]}</b></div>`).join(''):'<div class="empty">Sem dados.</div>'}
+function renderReport(){const rows=merged(),done=rows.filter(x=>x.adu),ok=done.filter(x=>x.status==='CORRETA'),dv=done.filter(x=>x.status==='DIVERGÊNCIA'),wait=rows.filter(x=>x.status==='AGUARDANDO'),late=done.filter(x=>x.late),sla=+document.getElementById('sla').value||15;const amais=done.reduce((s,x)=>s+(x.adu?.amais||0),0),falt=done.reduce((s,x)=>s+(x.adu?.faltantes||0),0),av=done.reduce((s,x)=>s+(x.adu?.avariadas||0),0),pkg=amais+falt+av,critical=done.filter(x=>x.div>0||x.late||x.backlog>0).length,compliance=done.length?ok.length/done.length*100:0,divRate=done.length?dv.length/done.length*100:0,slaRate=done.length?(done.length-late.length)/done.length*100:0;const k=[['Rotas na visão',rows.length],['Realizadas',done.length],['Corretas',ok.length],['Com divergência',dv.length],['Aguardando',wait.length],['Acima do tempo',late.length],['A mais',amais],['Faltantes',falt]];document.getElementById('reportDate').textContent='Data operacional · '+new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR');document.getElementById('reportKpis').innerHTML=k.map(x=>`<div class="rKpi"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');document.getElementById('reportCompliance').textContent=compliance.toFixed(1).replace('.',',')+'%';document.getElementById('reportDivergenceRate').textContent=divRate.toFixed(1).replace('.',',')+'%';document.getElementById('reportSlaRate').textContent=slaRate.toFixed(1).replace('.',',')+'%';document.getElementById('reportPackageImpact').textContent=pkg;document.getElementById('reportCriticalRoutes').textContent=critical;document.getElementById('reportExecutiveText').textContent=`${done.length} Aduanas realizadas de ${rows.length} rotas na visão. ${ok.length} corretas e ${dv.length} com divergência.`;const status=[['Corretas',ok.length],['Divergência',dv.length],['Aguardando',wait.length],['Acima do tempo',late.length]];document.getElementById('statusBars').innerHTML=reportBarHtml(status);const cm={},cd={},sm={};done.forEach(x=>{const c=x.transportadora||'Não identificada',r=x.rua||'Sem rua';cm[c]=(cm[c]||0)+1;cd[c]=(cd[c]||0)+(x.div>0?1:0);sm[r]=(sm[r]||0)+1});const carr=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,10),cdiv=Object.entries(cd).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10),streets=Object.entries(sm).sort((a,b)=>b[1]-a[1]);document.getElementById('carrierBars').innerHTML=reportBarHtml(carr);document.getElementById('carrierDivergenceBars').innerHTML=reportBarHtml(cdiv);document.getElementById('streetBars').innerHTML=reportBarHtml(streets);const issues=done.filter(x=>x.div>0||x.late||x.backlog>0).sort((a,b)=>((b.div||0)+(b.backlog||0)+(b.late?1:0))-((a.div||0)+(a.backlog||0)+(a.late?1:0))).slice(0,20);document.getElementById('reportIssues').innerHTML=issues.length?`<table style="min-width:900px"><thead><tr><th>Rota</th><th>Transportadora</th><th>Rua</th><th>Tempo</th><th>A mais</th><th>Faltantes</th><th>Divergência</th><th>Backlog</th></tr></thead><tbody>${issues.map(x=>`<tr><td><b>${esc(x.rota)}</b></td><td>${esc(x.transportadora||'—')}</td><td>${esc(x.rua||'—')}</td><td>${x.tempo||0} min</td><td>${x.adu?.amais||0}</td><td>${x.adu?.faltantes||0}</td><td>${x.div}</td><td>${x.backlog}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nenhuma ocorrência crítica.</div>';const recHtml=(field)=>{const mp=recurrenceMap(done,field);const arr=Object.entries(mp).filter(x=>x[1]>1).sort((a,b)=>b[1]-a[1]);return reportBarHtml(arr.map(([n,c])=>[n,c]))};document.getElementById('logRecurrence').innerHTML=recHtml('rep');document.getElementById('driverRecurrence').innerHTML=recHtml('motorista');const topDiv=cdiv[0],topVol=carr[0];document.getElementById('managementNote').innerHTML=`<b>Leitura gerencial:</b> conformidade de <b>${compliance.toFixed(1).replace('.',',')}%</b>, com <b>${dv.length}</b> rotas divergentes e <b>${pkg}</b> pacotes de impacto (a mais + faltantes + avariadas). ${topDiv?`Maior concentração de divergências: <b>${esc(topDiv[0])}</b> (${topDiv[1]} rotas). `:''}${topVol?`Maior volume auditado: <b>${esc(topVol[0])}</b> (${topVol[1]} Aduanas). `:''}<b>${late.length}</b> auditorias ficaram acima do SLA configurado de ${sla} min.`}
+async function exportExcel(){
+  if(typeof ExcelJS==='undefined'){ alert('Não foi possível carregar o gerador Premium do Excel. Verifique a internet e tente novamente.'); return; }
+  const rows=merged(), done=rows.filter(x=>x.adu), dv=done.filter(x=>x.div>0), late=done.filter(x=>x.late), withBl=done.filter(x=>x.backlog>0);
+  const ok=done.filter(x=>x.status==='CORRETA'), aguard=rows.filter(x=>x.status==='AGUARDANDO');
+  const amais=done.reduce((s,x)=>s+(x.adu?.amais||0),0), falt=done.reduce((s,x)=>s+(x.adu?.faltantes||0),0), av=done.reduce((s,x)=>s+(x.adu?.avariadas||0),0);
+  const compliance=done.length?ok.length/done.length:0, divRate=done.length?dv.length/done.length:0, slaRate=done.length?(done.length-late.length)/done.length:0;
+  const wb=new ExcelJS.Workbook(); wb.creator='KN · Aduana'; wb.created=new Date();
+  const C={navy:'071A30',navy2:'003369',blue:'0099DA',white:'FFFFFF',green:'16A36A',red:'E0453F',amber:'C98A04',pale:'F4F7FB',line:'DCE5EF',text:'0A2240',muted:'66788F',softGreen:'E8F6EF',softRed:'FDECEC',softAmber:'FFF6DD',softBlue:'EDF3F9'};
+  const fill=c=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+c}}), thin={style:'thin',color:{argb:'FF'+C.line}};
+  const titleCell=(ws,range,text,bg=C.navy,size=18)=>{ws.mergeCells(range);const c=ws.getCell(range.split(':')[0]);c.value=text;c.fill=fill(bg);c.font={name:'Aptos Display',size,bold:true,color:{argb:'FF'+C.white}};c.alignment={vertical:'middle'};};
+  const box=(cell,bg=C.white)=>{cell.fill=fill(bg);cell.border={top:thin,left:thin,bottom:thin,right:thin};};
+  const ws=wb.addWorksheet('Dashboard',{views:[{showGridLines:false}]});
+  ws.columns=Array.from({length:14},(_,i)=>({width:[18,16,16,16,16,16,3,24,16,16,16,16,16,16][i]}));
+  titleCell(ws,'A1:N2','RELATÓRIO EXECUTIVO · CONTROLE DE ADUANA'); ws.getRow(1).height=27;ws.getRow(2).height=13;
+  ws.mergeCells('A3:N3');ws.getCell('A3').value=`Performance operacional · ${new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR')} · Atualizado ${new Date().toLocaleString('pt-BR')}`;ws.getCell('A3').fill=fill(C.navy);ws.getCell('A3').font={name:'Aptos',size:9,color:{argb:'FFB8D8F0'}};
+  const cards=[['A5:B5','A6:B7','ROTAS NA VISÃO',rows.length,C.blue],['C5:D5','C6:D7','REALIZADAS',done.length,C.navy2],['E5:F5','E6:F7','CORRETAS',ok.length,C.green],['H5:I5','H6:I7','DIVERGÊNCIAS',dv.length,C.red],['J5:K5','J6:K7','ACIMA DO SLA',late.length,C.amber],['L5:M5','L6:M7','AGUARDANDO',aguard.length,C.blue]];
+  cards.forEach(([lr,vr,l,v,col])=>{ws.mergeCells(lr);ws.mergeCells(vr);let a=ws.getCell(lr.split(':')[0]),b=ws.getCell(vr.split(':')[0]);a.value=l;a.fill=fill(col);a.font={name:'Aptos',bold:true,size:9,color:{argb:'FFFFFFFF'}};a.alignment={horizontal:'center',vertical:'middle'};b.value=v;b.font={name:'Aptos Display',bold:true,size:24,color:{argb:'FF'+col}};b.alignment={horizontal:'center',vertical:'middle'};for(const row of ws.getCell(vr.split(':')[0]).worksheet.getRows(parseInt(vr.match(/\d+/)[0]),2)||[]){};});
+  titleCell(ws,'A9:F9','QUALIDADE DA OPERAÇÃO',C.navy2,11); ws.addRows([]);
+  const quality=[['Indicador','Resultado','Interpretação'],['Conformidade',compliance,'Corretas ÷ realizadas'],['Taxa de divergência',divRate,'Divergências ÷ realizadas'],['Dentro do SLA',slaRate,'Realizadas dentro do limite'],['Execução',rows.length?done.length/rows.length:0,'Realizadas ÷ rotas na visão']];
+  quality.forEach((r,ri)=>{let rr=10+ri; ws.getCell(rr,1).value=r[0];ws.getCell(rr,2).value=r[1];ws.getCell(rr,3).value=r[2];for(let c=1;c<=6;c++)box(ws.getCell(rr,c),ri===0?'E7EEF6':C.white);if(ri===0)for(let c=1;c<=3;c++)ws.getCell(rr,c).font={bold:true,color:{argb:'FF'+C.text}};});
+  ws.getRange?.('B11:B14'); for(let r=11;r<=14;r++)ws.getCell(r,2).numFmt='0.0%';
+  const by={};done.forEach(x=>{const c=x.transportadora||'Não identificada';by[c]??={real:0,ok:0,div:0,late:0};let z=by[c];z.real++;z.ok+=x.status==='CORRETA';z.div+=x.status==='DIVERGÊNCIA';z.late+=x.late?1:0;});
+  const rank=Object.entries(by).sort((a,b)=>b[1].div-a[1].div||b[1].real-a[1].real).slice(0,10);
+  titleCell(ws,'H9:N9','TRANSPORTADORAS · PERFORMANCE E RISCO',C.navy2,11);
+  [['Transportadora','Realizadas','Corretas','Diverg.','Taxa','SLA']].concat(rank.map(([n,z])=>[n,z.real,z.ok,z.div,z.real?z.div/z.real:0,z.real?(z.real-z.late)/z.real:0])).forEach((r,i)=>{let rr=10+i;r.forEach((v,j)=>{let c=ws.getCell(rr,8+j);c.value=v;box(c,i===0?'E7EEF6':C.white);if(i===0)c.font={bold:true,color:{argb:'FF'+C.text}};});});
+  for(let r=11;r<11+rank.length;r++){ws.getCell(r,12).numFmt='0.0%';ws.getCell(r,13).numFmt='0.0%';}
+  titleCell(ws,'A17:N17','LEITURA EXECUTIVA',C.navy2,11);ws.mergeCells('A18:N20');let note=ws.getCell('A18');note.value=`Conformidade de ${(compliance*100).toFixed(1).replace('.',',')}% | Divergência de ${(divRate*100).toFixed(1).replace('.',',')}% | ${(slaRate*100).toFixed(1).replace('.',',')}% dentro do SLA. Impacto registrado: ${amais+falt+av} pacote(s) entre a mais, faltantes e avariados. ${rank[0]?`Maior concentração de divergências: ${rank[0][0]} (${rank[0][1].div}).`:''}`;note.alignment={wrapText:true,vertical:'top'};note.font={size:11,color:{argb:'FF'+C.text}};note.fill=fill(C.white);note.border={top:thin,left:thin,bottom:thin,right:thin};
+  titleCell(ws,'A22:N22','TOP OCORRÊNCIAS PARA ATUAÇÃO',C.red,11);
+  const issues=done.filter(x=>x.div>0||x.late||x.backlog>0).sort((a,b)=>((b.div||0)+(b.backlog||0)+(b.late?2:0))-((a.div||0)+(a.backlog||0)+(a.late?2:0))).slice(0,12);
+  const ih=['Rota','Transportadora','LOG','Motorista','Tempo','Divergência','Backlog'];ih.forEach((v,j)=>{let c=ws.getCell(23,1+j);c.value=v;c.fill=fill('FDECEC');c.font={bold:true,color:{argb:'FF8F1F1A'}};c.border={bottom:thin};});
+  issues.forEach((x,i)=>{let r=24+i;[x.rota,x.transportadora||'',x.adu?.rep||'',x.adu?.motorista||'',x.tempo??'',x.div||0,x.backlog||0].forEach((v,j)=>{let c=ws.getCell(r,1+j);c.value=v;box(c,C.white);});});
+  ws.views=[{state:'frozen',ySplit:3,showGridLines:false}];
+  ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1,paperSize:9,margins:{left:.25,right:.25,top:.4,bottom:.4,header:.15,footer:.15}};
+  ws.headerFooter.oddFooter='&LKN · Aduana&CRelatório Executivo&R&P / &N';
+
+  const logRec=recurrenceMap(rows,'rep'),drvRec=recurrenceMap(rows,'motorista');
+  const data=rows.map(x=>({Status:x.status,Rota:x.rota,Aduana:x.adu?.id||'',Transportadora:x.transportadora||'',LOG:x.adu?.rep||'',Motorista:x.adu?.motorista||'',Placa:x.adu?.placa||'',Reincidencia_LOG:x.adu?.rep?(logRec[norm(x.adu.rep)]||0):0,Reincidencia_Motorista:x.adu?.motorista?(drvRec[norm(x.adu.motorista)]||0):0,Rua:x.rua||'',Vaga:x.vaga||'',Tempo_min:x.adu?.tempo??'',Corretas:x.adu?.corretas??'',A_mais:x.adu?.amais??'',Faltantes:x.adu?.faltantes??'',Avariadas:x.adu?.avariadas??'',Divergencia:x.adu?x.div:'',Backlog:x.backlog,Horario:x.adu?.hora||''}));
+  function addDetail(name,arr){const sh=wb.addWorksheet(name,{views:[{state:'frozen',ySplit:1,showGridLines:false}]});const headers=Object.keys(data[0]||{Status:'',Rota:''});sh.addRow(headers);arr.forEach(o=>sh.addRow(headers.map(h=>o[h])));sh.autoFilter={from:{row:1,column:1},to:{row:Math.max(1,arr.length+1),column:headers.length}};const widths={Status:16,Rota:14,Aduana:17,Transportadora:24,LOG:27,Motorista:32,Placa:16,Reincidencia_LOG:18,Reincidencia_Motorista:21,Rua:12,Vaga:11,Tempo_min:13,Corretas:12,A_mais:11,Faltantes:12,Avariadas:12,Divergencia:13,Backlog:12,Horario:20};headers.forEach((h,i)=>sh.getColumn(i+1).width=widths[h]||15);let hr=sh.getRow(1);hr.height=26;hr.eachCell(c=>{c.fill=fill(C.navy);c.font={bold:true,color:{argb:'FFFFFFFF'}};c.alignment={horizontal:'center',vertical:'middle'};c.border={bottom:{style:'medium',color:{argb:'FF'+C.blue}}};});for(let r=2;r<=arr.length+1;r++){let st=sh.getCell(r,1).value,bg=st==='DIVERGÊNCIA'?C.softRed:st==='CORRETA'?C.softGreen:st==='AGUARDANDO'?C.softAmber:st==='PLANEJADA'?C.softBlue:C.white;sh.getCell(r,1).fill=fill(bg);sh.getCell(r,1).font={bold:true,color:{argb:'FF'+(st==='DIVERGÊNCIA'?'A3211B':st==='CORRETA'?'0D754A':st==='AGUARDANDO'?'8A6200':C.muted)}};sh.getRow(r).height=19;for(let c=1;c<=headers.length;c++)sh.getCell(r,c).border={bottom:{style:'hair',color:{argb:'FFE7EDF4'}}};}sh.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};return sh;}
+  addDetail('Visao Operacional',data);addDetail('Divergencias',data.filter(x=>Number(x.Divergencia)>0));addDetail('Acima do Tempo',data.filter((x,i)=>rows[i]?.late));addDetail('Com Backlog',data.filter(x=>Number(x.Backlog)>0));
+  const carr=Object.entries(by).sort((a,b)=>b[1].real-a[1].real).map(([n,z])=>({Transportadora:n,Realizadas:z.real,Corretas:z.ok,Divergentes:z.div,Taxa_Divergencia:z.real?z.div/z.real:0,Dentro_SLA:z.real?(z.real-z.late)/z.real:0}));
+  const cs=wb.addWorksheet('Transportadoras',{views:[{state:'frozen',ySplit:1,showGridLines:false}]});cs.addRow(['Transportadora','Realizadas','Corretas','Divergentes','Taxa Divergência','Dentro SLA']);carr.forEach(o=>cs.addRow(Object.values(o)));cs.columns=[{width:28},{width:14},{width:14},{width:15},{width:18},{width:16}];cs.getRow(1).eachCell(c=>{c.fill=fill(C.navy);c.font={bold:true,color:{argb:'FFFFFFFF'}};c.alignment={horizontal:'center'}});for(let r=2;r<=carr.length+1;r++){cs.getCell(r,5).numFmt='0.0%';cs.getCell(r,6).numFmt='0.0%';}
+  const buffer=await wb.xlsx.writeBuffer();const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Relatorio_Aduana_${activeDate}_EXECUTIVO.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
 function renderAlerts(){const rows=merged().filter(x=>x.div>0&&x.backlog>0).sort((a,b)=>b.backlog-a.backlog||b.div-a.div);document.getElementById('alerts').innerHTML=rows.length?rows.map(x=>`<div class="alert"><strong>🚨 ALERTA — ADUANA COM DIVERGÊNCIA + BACKLOG</strong><div class="meta"><b>Aduana:</b> ${esc(x.adu?.id||x.rota)} · <b>Rota:</b> ${esc(x.rota)} · <b>Rua:</b> ${esc(x.rua||'não localizada')} · <b>Vaga:</b> ${esc(x.vaga||'—')}<br><b>Divergência:</b> ${x.div} pacote(s) — A mais: ${x.adu.amais} · Faltantes: ${x.adu.faltantes} · Avariadas: ${x.adu.avariadas}<br><b>Backlog relacionado:</b> ${x.backlog} pacote(s) · <b>Tempo de Aduana:</b> ${x.adu.tempo} min ${x.late?'· ⚠️ ACIMA DO TEMPO':''}</div></div>`).join(''):`<div class="empty card">Nenhuma Aduana com divergência + Backlog neste momento.</div>`}
 applyTheme();ensureOperationalDay();const __df=document.getElementById('dateFilter');if(__df)__df.value=activeDate;
 (async()=>{ await loadDayFromSupabase(activeDate); render(); await syncSupabase(); })();if(db){try{db.channel('aduana-live').on('postgres_changes',{event:'*',schema:'public',table:'operacoes_vagas'},syncSupabase).on('postgres_changes',{event:'*',schema:'public',table:'backlog_pacotes'},syncSupabase).subscribe()}catch(e){}}
@@ -1113,4 +1291,104 @@ window.addEventListener('DOMContentLoaded', () => {
   setTimeout(finishLoading, 4000);
 })();
 </script>
+
+<script>
+function printExecutiveReport(){
+  const modal=document.getElementById('reportModal');
+  if(modal && !modal.classList.contains('open')) openReport();
+  setTimeout(()=>window.print(),120);
+}
+</script>
+
+
+<script>
+function toggleInteractiveDashboard(){
+  const modal=document.getElementById('reportModal');
+  const report=modal?.querySelector('.report');
+  const btn=document.getElementById('dashboardInteractiveBtn');
+  if(!modal || !report) return;
+  if(!modal.classList.contains('open')) modal.classList.add('open');
+  const entering=!modal.classList.contains('dashboard-fullscreen');
+  modal.classList.toggle('dashboard-fullscreen',entering);
+  if(entering){
+    const f=document.getElementById('reportDateFilter');
+    if(f) f.value=activeDate;
+    renderReport();
+    report.scrollTo({top:0,left:0,behavior:'smooth'});
+    if(btn){btn.innerHTML='↙ Sair da tela cheia';btn.title='Voltar para a janela do relatório';}
+    document.body.style.overflow='hidden';
+  }else{
+    if(btn){btn.innerHTML='◉ Dashboard interativo';btn.title='Abrir dashboard em tela cheia';}
+    document.body.style.overflow='';
+  }
+}
+// ESC sai do dashboard em tela cheia
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    const modal=document.getElementById('reportModal');
+    if(modal?.classList.contains('dashboard-fullscreen')) toggleInteractiveDashboard();
+  }
+});
+// garante restauração ao fechar relatório
+const __closeReportOriginal = typeof closeReport==='function' ? closeReport : null;
+if(__closeReportOriginal){
+  closeReport=function(){
+    const modal=document.getElementById('reportModal');
+    modal?.classList.remove('dashboard-fullscreen');
+    document.body.style.overflow='';
+    const btn=document.getElementById('dashboardInteractiveBtn');
+    if(btn){btn.innerHTML='◉ Dashboard interativo';btn.title='Abrir dashboard em tela cheia';}
+    return __closeReportOriginal();
+  }
+}
+</script>
+
+<script id="executiveV2Script">
+function execBarHtml(arr){
+  const mx=Math.max(1,...arr.map(x=>x[1]));
+  return arr.length?arr.map(([n,v])=>`<div class="execBar"><label title="${esc(n)}">${esc(n)}</label><div class="execTrack"><i style="width:${Math.max(3,v/mx*100)}%"></i></div><strong>${v}</strong></div>`).join(''):'<div class="empty">Sem dados.</div>';
+}
+function renderExecutiveDashboard(){
+  const rows=merged(),done=rows.filter(x=>x.adu),ok=done.filter(x=>x.status==='CORRETA'),dv=done.filter(x=>x.status==='DIVERGÊNCIA'),late=done.filter(x=>x.late);
+  const amais=done.reduce((s,x)=>s+(x.adu?.amais||0),0),falt=done.reduce((s,x)=>s+(x.adu?.faltantes||0),0),av=done.reduce((s,x)=>s+(x.adu?.avariadas||0),0),pkg=amais+falt+av;
+  const compliance=done.length?ok.length/done.length*100:0,slaRate=done.length?(done.length-late.length)/done.length*100:0;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
+  set('execCompliance',compliance.toFixed(1).replace('.',',')+'%');set('execRoutes',rows.length);set('execDone',done.length);set('execDiv',dv.length);set('execSla',slaRate.toFixed(1).replace('.',',')+'%');set('execPkg',pkg);
+  set('execDate',new Date(activeDate+'T12:00:00').toLocaleDateString('pt-BR'));
+  const cm={},cd={},sm={};done.forEach(x=>{const c=x.transportadora||'Não identificada',r=x.rua||'Sem rua';cm[c]=(cm[c]||0)+1;cd[c]=(cd[c]||0)+(x.div>0?1:0);sm[r]=(sm[r]||0)+1});
+  const cdiv=Object.entries(cd).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const streets=Object.entries(sm).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('execCarrierBars').innerHTML=execBarHtml(cdiv);
+  document.getElementById('execStreetBars').innerHTML=execBarHtml(streets);
+  const issues=done.filter(x=>x.div>0||x.late||x.backlog>0).sort((a,b)=>((b.div||0)+(b.backlog||0)+(b.late?2:0))-((a.div||0)+(a.backlog||0)+(a.late?2:0))).slice(0,7);
+  document.getElementById('execCriticalTable').innerHTML=issues.length?`<table class="execTable"><thead><tr><th>Rota</th><th>Transportadora</th><th>Tempo</th><th>Div.</th></tr></thead><tbody>${issues.map(x=>`<tr><td><b>${esc(x.rota)}</b></td><td>${esc(x.transportadora||'—')}</td><td class="${x.late?'execRisk':''}">${x.tempo||0} min</td><td class="${x.div>0?'execRisk':''}">${x.div||0}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Sem ocorrências críticas.</div>';
+  const top=cdiv[0];
+  document.getElementById('execNarrative').textContent=`${done.length} Aduanas realizadas de ${rows.length} rotas na visão. ${ok.length} corretas, ${dv.length} com divergência e ${late.length} acima do SLA.`;
+  document.getElementById('execManagement').innerHTML=`Conformidade operacional em <b>${compliance.toFixed(1).replace('.',',')}%</b>. Foram identificados <b>${pkg}</b> pacotes de impacto entre a mais, faltantes e avariados. ${top?`A maior concentração de divergências está em <b>${esc(top[0])}</b>, com <b>${top[1]}</b> rota(s).`:''} O painel prioriza concentração de desvios, SLA e ocorrências críticas para facilitar a tomada de decisão.`;
+}
+function showExecutiveDashboard(){
+  const modal=document.getElementById('reportModal');
+  if(!modal)return;
+  modal.classList.remove('dashboard-fullscreen');
+  modal.classList.add('exec-view');
+  renderExecutiveDashboard();
+  const report=modal.querySelector('.report'); if(report)report.scrollTop=0;
+  const btn=document.getElementById('dashboardInteractiveBtn'); if(btn){btn.innerHTML='◉ Visão executiva ativa';btn.title='Dashboard executivo aberto';}
+}
+function showDetailedReport(){
+  const modal=document.getElementById('reportModal'); if(!modal)return;
+  modal.classList.remove('exec-view','dashboard-fullscreen');
+  renderReport();
+  const btn=document.getElementById('dashboardInteractiveBtn'); if(btn){btn.innerHTML='◉ Dashboard interativo';btn.title='Abrir visão executiva';}
+}
+function printExecutiveReport(){
+  const modal=document.getElementById('reportModal');
+  if(!modal)return;
+  modal.classList.add('exec-view');
+  modal.classList.remove('dashboard-fullscreen');
+  renderExecutiveDashboard();
+  setTimeout(()=>window.print(),180);
+}
+</script>
+
 </body></html>

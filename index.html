@@ -451,7 +451,7 @@ body.light .pill.cancel{ background:#7a8596; border-color:transparent; }
 
 </style>
 
-<style id="equipesTabStyle">body:not(.view-equipes) #viewEquipes{display:none!important}body.view-equipes #kpis,body.view-equipes .aduanaMain,body.view-equipes #viewCarrinho,body.view-equipes #flowAduana,body.view-equipes #flowCarrinho{display:none!important}.viewTabs{flex-wrap:wrap}body.view-equipes #opDate{display:none!important}@media(max-width:640px){#equipesFrame{height:calc(100dvh - 220px)!important;min-height:550px!important}.viewTabs button{flex:1;min-width:120px}}</style><style id="knCenterArtStyle">.kn-center-art{display:flex;justify-content:center;align-items:center;width:100%;margin:32px auto 0;padding:0 12px}.kn-center-art img{display:block;width:auto;max-width:100%;height:auto;max-height:260px;object-fit:contain;border-radius:14px}body.view-equipes .kn-center-art{display:none}@media(max-width:640px){.kn-center-art{margin-top:24px;padding:0}.kn-center-art img{width:100%;max-height:none}}@media print{.kn-center-art{display:none}}</style><style id="knTopArtSignature">.kn-center-art{flex-direction:column;gap:10px;margin:0 auto 24px;padding:0}.kn-center-art img{max-height:180px;width:auto;max-width:100%;object-fit:contain}.kn-developer-signature{font-size:12px;font-weight:600;letter-spacing:.4px;color:var(--mid,#96aec5)}body.view-equipes .kn-center-art{display:flex}.kn-app-signature{text-align:center;font-size:12px;color:var(--mid,#96aec5);padding:24px 12px;margin:0}@media(max-width:640px){.kn-center-art img{max-height:160px;width:auto}}@media print{.kn-center-art{display:none}}</style></head>
+<style id="equipesTabStyle">body:not(.view-equipes) #viewEquipes{display:none!important}body.view-equipes #kpis,body.view-equipes .aduanaMain,body.view-equipes #viewCarrinho,body.view-equipes #flowAduana,body.view-equipes #flowCarrinho{display:none!important}.viewTabs{flex-wrap:wrap}body.view-equipes #opDate{display:none!important}@media(max-width:640px){#equipesFrame{height:calc(100dvh - 220px)!important;min-height:550px!important}.viewTabs button{flex:1;min-width:120px}}</style><style id="knCenterArtStyle">.kn-center-art{display:flex;justify-content:center;align-items:center;width:100%;margin:32px auto 0;padding:0 12px}.kn-center-art img{display:block;width:auto;max-width:100%;height:auto;max-height:260px;object-fit:contain;border-radius:14px}body.view-equipes .kn-center-art{display:none}@media(max-width:640px){.kn-center-art{margin-top:24px;padding:0}.kn-center-art img{width:100%;max-height:none}}@media print{.kn-center-art{display:none}}</style><style id="knTopArtSignature">.kn-center-art{flex-direction:column;gap:10px;margin:0 auto 24px;padding:0}.kn-center-art img{max-height:180px;width:auto;max-width:100%;object-fit:contain}.kn-developer-signature{font-size:12px;font-weight:600;letter-spacing:.4px;color:var(--mid,#96aec5)}body.view-equipes .kn-center-art{display:flex}body.view-equipes .kn-app-signature{display:block}.kn-app-signature{display:none;text-align:center;font-size:12px;color:var(--mid,#96aec5);padding:24px 12px;margin:0}@media(max-width:640px){.kn-center-art img{max-height:160px;width:auto}}@media print{.kn-center-art{display:none}}</style></head>
 <body class="is-loading">
 <script>try{ if(localStorage.getItem('aduana_theme_v1')==='light') document.body.classList.add('light'); }catch(e){}</script>
 <div class="stage" aria-hidden="true"></div>
@@ -680,7 +680,7 @@ Concluída"></textarea>
 
 </div>
 
-<footer class="kn-app-signature">Desenvolvedora Isis Mello</footer>
+<footer class="kn-app-signature">Desenvolvedor Isis Mello</footer>
 <!-- ================= RELATÓRIO ================= -->
 <div class="modal" id="reportModal" onclick="if(event.target===this)closeReport()">
   <div class="report">
@@ -1881,4 +1881,26 @@ function resizeEquipesFrame(frame){
  const adjust=()=>{const height=Math.max(750,Math.ceil(main.getBoundingClientRect().bottom+frame.contentWindow.scrollY+24));if(Math.abs(frame.offsetHeight-height)>2)frame.style.setProperty('height',height+'px','important')};
  if(frame._teamObserver)frame._teamObserver.disconnect();frame._teamObserver=new ResizeObserver(adjust);frame._teamObserver.observe(main);frame.contentWindow.addEventListener('resize',adjust);d.querySelectorAll('img').forEach(img=>img.addEventListener('load',adjust));adjust();
 }
-</script></body></html>
+</script><script id="isisFooterAllApps">
+(function(){
+ function applyFooter(doc){
+  if(!doc || !doc.body)return;
+  let footer=doc.getElementById('isis-dev-footer');
+  if(!footer){
+   footer=doc.createElement('footer');footer.id='isis-dev-footer';
+   footer.style.cssText='text-align:center;padding:24px 12px;font:600 12px Arial,sans-serif;color:var(--mid,#8495a8);border-top:1px solid rgba(130,150,175,.15);margin-top:20px;';
+   doc.body.appendChild(footer);
+  }
+  footer.textContent='Desenvolvedor Isis Mello';
+ }
+ function attach(){
+  document.querySelectorAll('iframe').forEach(function(frame){
+   if(frame.dataset.isisFooterBound)return;frame.dataset.isisFooterBound='1';
+   frame.addEventListener('load',function(){try{applyFooter(frame.contentDocument)}catch(e){} });
+   try{if(frame.contentDocument && frame.contentDocument.readyState==='complete')applyFooter(frame.contentDocument)}catch(e){}
+  });
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attach);else attach();
+})();
+</script>
+</body></html>
